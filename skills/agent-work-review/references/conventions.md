@@ -28,6 +28,10 @@ Sources, in order of authority:
    precedent for everything unwritten: layering, naming, error handling, DI, test
    structure. When the repo is inconsistent, the nearest neighbors and the newest code
    win — do not flag a diff for matching the file it sits in.
+4. **Language default baseline** — only for points where sources 1–3 are silent. For
+   C#, use `csharp-conventions.md` (the Microsoft/.NET-runtime baseline). For other
+   languages, fall back to the language's dominant community standard (PEP 8 for
+   Python, etc.) and say so in the finding.
 
 ## What to compare
 

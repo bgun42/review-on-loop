@@ -101,7 +101,9 @@ generality). Details: `references/readability.md`.
 
 Compare the diff against the baseline from Step 2: layering, naming, error handling,
 DI, test placement. A convention violation is judged against *this repo's* rules, never
-against generic best practice. Details: `references/conventions.md`.
+against generic best practice. Details: `references/conventions.md`. When the repo has
+no precedent on a point and the diff is C#, fall back to the Microsoft baseline in
+`references/csharp-conventions.md`.
 
 ## Step 4 — Verify before reporting
 

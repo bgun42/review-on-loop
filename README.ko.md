@@ -49,7 +49,8 @@ skills/agent-work-review/
     ├── performance.md        # N+1, 무제한 읽기, sync-over-async
     ├── cost.md               # 과금 모델 + Cosmos DB 딥다이브
     ├── readability.md        # 에이전트 특유의 코드 냄새
-    └── conventions.md        # repo 선례 발견·대조 방법
+    ├── conventions.md        # repo 선례 발견·대조 방법
+    └── csharp-conventions.md # Microsoft C# 기본 컨벤션 (repo에 선례가 없을 때의 fallback)
 ```
 
 ## 라이선스

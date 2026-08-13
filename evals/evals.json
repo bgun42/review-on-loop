@@ -9,8 +9,8 @@
     },
     {
       "id": 2,
-      "prompt": "에이전트가 방금 이 브랜치에서 작업을 끝냈어. 머지해도 될지 리뷰해줘.",
-      "expected_output": "Korean-language review report following the same template, reviewing branch vs merge-base, catching seeded defects, with a verdict.",
+      "prompt": "에이전트가 방금 이 레포에서 리팩토링 작업을 끝냈어 (아직 커밋 전이야). 커밋해도 될지 리뷰해줘.",
+      "expected_output": "Korean-language review report following the same template, reviewing the uncommitted working tree, catching seeded defects, with a verdict.",
       "files": ["fixture repo (seeded defects)"]
     },
     {

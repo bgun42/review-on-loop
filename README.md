@@ -50,7 +50,8 @@ skills/agent-work-review/
     ├── performance.md        # N+1, unbounded reads, sync-over-async
     ├── cost.md               # metered-service model + Cosmos DB deep-dive
     ├── readability.md        # agent-specific code smells
-    └── conventions.md        # discovering and enforcing repo precedent
+    ├── conventions.md        # discovering and enforcing repo precedent
+    └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
 ```
 
 ## License
