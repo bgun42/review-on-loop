@@ -1,0 +1,23 @@
+{
+  "skill_name": "agent-work-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "An AI agent just finished refactoring the report service in this repo (the changes are uncommitted in the working tree). Review the agent's work before I commit it.",
+      "expected_output": "A structured review report that catches the seeded defects: a cross-partition Cosmos query (cost), an N+1 query loop (performance), a renamed method with a stale caller (regression), and a convention violation (layering/error-handling divergence). Findings are ranked by severity with file:line evidence and a final verdict.",
+      "files": ["fixture repo (seeded defects)"]
+    },
+    {
+      "id": 2,
+      "prompt": "에이전트가 방금 이 브랜치에서 작업을 끝냈어. 머지해도 될지 리뷰해줘.",
+      "expected_output": "Korean-language review report following the same template, reviewing branch vs merge-base, catching seeded defects, with a verdict.",
+      "files": ["fixture repo (seeded defects)"]
+    },
+    {
+      "id": 3,
+      "prompt": "The agent made a small change to the date formatting helper (uncommitted). Can you check it's safe to commit?",
+      "expected_output": "A clean-diff review: no fabricated findings, explicit 'checked and clean' section per pass, verdict Approve. Tests the false-positive rate.",
+      "files": ["fixture repo (clean change)"]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "agent-work-review",
+  "owner": {
+    "name": "lab021adm"
+  },
+  "metadata": {
+    "description": "Review code changes produced by AI agents before they land: regression risk, performance defects, cloud-cost defects, readability, and convention adherence.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "agent-work-review",
+      "source": "./",
+      "description": "A single-skill plugin that reviews agent-produced diffs across five dimensions: regression, performance, cloud cost (Cosmos DB and other metered services), readability, and repo-convention adherence.",
+      "version": "0.1.0",
+      "author": {
+        "name": "lab021adm"
+      },
+      "keywords": [
+        "code-review",
+        "agent",
+        "regression",
+        "performance",
+        "cloud-cost",
+        "cosmos-db"
+      ]
+    }
+  ]
+}
