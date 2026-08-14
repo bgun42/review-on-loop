@@ -57,8 +57,18 @@ The plugin also ships a goal-driven develop → review → fix loop:
 - **It stops when your goal's acceptance criteria verify AND the review verdict is
   Pass.** Safety stops: max 3 iterations, and escalation to you if findings stop
   decreasing (oscillation). Warnings never keep the loop running.
+- **Executable acceptance criteria**: each criterion is paired with the exact check
+  the loop runs (a test command, a grep assertion) — termination is mechanical, not a
+  judgment call. A **findings ledger** (`.agent-review/ledger.json`) tracks every
+  finding across iterations (Pass / open / recurred / accepted), a **final gate**
+  reviewer independently confirms success before the loop exits, and remaining
+  warnings get an explicit disposition (accept / file issue / clean up now).
+- **Model routing**: reviewers and the final gate run on the strongest model available,
+  develop/fix steps on the session or a mid-tier model — the loop converges on the
+  judge's standards, so the judge is where model strength pays.
 - The pieces interoperate through a machine-readable JSON block (`verdict`,
-  `findings[]`) that every review report ends with — you can consume it from CI too.
+  `findings[]`) that every review report ends with — see [docs/ci.md](docs/ci.md) for
+  a GitHub Actions gate and a Stop-hook recipe built on it.
 
 The `apply-review-findings` skill also works standalone: "apply the review findings" /
 "리뷰 지적사항 반영해줘".

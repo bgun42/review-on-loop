@@ -81,6 +81,14 @@ When you flag a Cosmos finding, name the container, its partition key (if you fo
 it), and the scaling story: "fans out across all partitions of `ship-reports`
 (partitioned by `/sk`), scanning grows with fleet size."
 
+**Measure when you can.** Static reasoning is the floor, not the ceiling: if the
+environment offers a way to run the suspect query and read its actual charge — a
+Cosmos emulator, the SDK's `RequestCharge` on a sample call, a metrics/monitoring
+API, or an MCP tool that can execute the query — do it and put the measured number in
+the finding ("18.4 RU per call, ~440 RU after the fleet grows 10×" beats "this looks
+expensive"). A measured finding is a Confirmed finding; never *block* on measurement
+being unavailable, and never run measurements that write data.
+
 ## Severity guidance
 
 - Metered call whose cost grows with data size or sits in an unbounded loop

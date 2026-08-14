@@ -63,6 +63,10 @@ the conventions pass (Step 3E) is only as good as the baseline you build here. I
 prevents the most annoying reviewer failure: flagging code for violating a rule the
 repository doesn't actually have.
 
+If `.agent-review/baseline.md` exists in the repo, start from it (a cached baseline
+from a previous review) and spot-check it against current code before trusting it —
+see `references/conventions.md` for the cache rules.
+
 ## Step 3 — The five review passes
 
 Run all five passes over the diff. Each pass has a reference file with detailed

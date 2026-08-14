@@ -17,7 +17,9 @@ seconds: did it converge, what blocked each iteration, and what is now Pass.
 ## Input
 
 Gather from the conversation or from saved loop artifacts (review reports, fix
-reports): the goal contract (goal, acceptance criteria, scope bounds), and per
+reports, and `.agent-review/ledger.json` when present — the ledger is the most
+reliable source for finding statuses across iterations, including `accepted`
+warnings): the goal contract (goal, acceptance criteria, scope bounds), and per
 iteration — verdict, findings (severity, title, file, confidence), and fix statuses
 (Pass / skipped). Use real data only; if something is unknown, omit the element rather
 than inventing numbers.

@@ -36,6 +36,11 @@ If there is no review report at all, say so and stop — running a review first 
   else stays untouched. This is a convergence rule, not laziness: a loop that chases
   warnings produces new diffs for the next review to comment on and never terminates.
   Remaining warnings stay in the report for a human to accept or batch later.
+- **Warnings-only cleanup mode**: when explicitly invoked for it (e.g., the
+  review-loop's warning-debt disposition), fix ONLY warnings — skip any warning the
+  ledger marks `accepted`, and still take the minimal-diff path.
+- If the repo has `.agent-review/ledger.json`, skip findings marked `accepted` and
+  keep finding titles identical to the ledger's so statuses reconcile.
 - **Needs-verification findings**: verify first (trace the caller, find the partition
   key). If the finding turns out to be false, record it as `skipped — not reproducible`
   with your evidence instead of "fixing" a non-problem.

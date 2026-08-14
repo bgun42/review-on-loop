@@ -33,6 +33,17 @@ Sources, in order of authority:
    languages, fall back to the language's dominant community standard (PEP 8 for
    Python, etc.) and say so in the finding.
 
+## Baseline cache
+
+Discovering the baseline costs a few minutes per review; the baseline itself changes
+rarely. If `.agent-review/baseline.md` exists in the target repo, read it first — it
+is a previously discovered baseline — then spot-check it against 1–2 current sibling
+files (repos drift; a stale baseline is worse than none) and use it. After a review
+where you built the baseline from scratch, *offer* to save it there for future runs —
+don't write into the user's repo unasked. The file is deliberately human-editable:
+a team can correct or extend it, which quietly promotes discovered conventions into
+written house rules (source #1).
+
 ## What to compare
 
 - **Placement & layering.** Does new code sit where this repo puts that kind of code
