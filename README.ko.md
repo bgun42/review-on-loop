@@ -61,6 +61,11 @@ verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 �
 
 `apply-review-findings` 스킬은 단독으로도 동작합니다: "리뷰 지적사항 반영해줘".
 
+루프가 끝나면 번들된 `loop-dashboard` 스킬로 **한눈에 보는 대시보드**를 제안합니다 —
+반복별 재시도 원인, Failed/Warning 추이 그래프, Pass로 해소된 항목, 목표 검증 결과.
+자기완결 HTML(인라인 SVG 차트, CDN 의존 0)이라 플러그인과 함께 배포되고 오프라인에서도
+동작합니다.
+
 > 참고: 루프 호출 없이 모든 세션에 리뷰를 *강제*하려면 Claude Code
 > [Stop 훅](https://docs.anthropic.com/en/docs/claude-code/hooks)을 본인 settings에
 > 걸어 Failed 발견이 있으면 종료를 막게 하면 됩니다. 사용자별 하니스 설정이라 이
@@ -81,8 +86,10 @@ skills/
 │       ├── readability.md        # 에이전트 특유의 코드 냄새
 │       ├── conventions.md        # repo 선례 발견·대조 방법
 │       └── csharp-conventions.md # Microsoft C# 기본 컨벤션 (repo에 선례가 없을 때의 fallback)
-└── apply-review-findings/
-    └── SKILL.md              # 리뷰 리포트의 Failed 발견 수정, 해소된 항목은 Pass로 보고
+├── apply-review-findings/
+│   └── SKILL.md              # 리뷰 리포트의 Failed 발견 수정, 해소된 항목은 Pass로 보고
+└── loop-dashboard/
+    └── SKILL.md              # 루프 이력을 자기완결 HTML 대시보드로 렌더링
 ```
 
 ## 라이선스

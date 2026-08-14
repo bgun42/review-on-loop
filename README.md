@@ -63,6 +63,11 @@ The plugin also ships a goal-driven develop → review → fix loop:
 The `apply-review-findings` skill also works standalone: "apply the review findings" /
 "리뷰 지적사항 반영해줘".
 
+When the loop finishes it offers a **one-glance dashboard** of the run — retry causes
+per iteration, Failed/Warning trend chart, resolved-as-Pass items, goal verification —
+via the bundled `loop-dashboard` skill (self-contained HTML, inline SVG charts, zero
+CDN dependencies, so it ships with the plugin and works offline).
+
 > Tip: to *enforce* review on every session without invoking the loop, wire a Claude
 > Code [Stop hook](https://docs.anthropic.com/en/docs/claude-code/hooks) in your own
 > settings that runs a review and blocks completion on Failed findings. That is a
@@ -83,8 +88,10 @@ skills/
 │       ├── readability.md        # agent-specific code smells
 │       ├── conventions.md        # discovering and enforcing repo precedent
 │       └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
-└── apply-review-findings/
-    └── SKILL.md              # fixes Failed findings from a review report, reports them as Pass
+├── apply-review-findings/
+│   └── SKILL.md              # fixes Failed findings from a review report, reports them as Pass
+└── loop-dashboard/
+    └── SKILL.md              # renders loop history as a self-contained HTML dashboard
 ```
 
 ## License

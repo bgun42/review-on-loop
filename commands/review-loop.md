@@ -81,8 +81,9 @@ Whatever the exit path, tell the user:
 
 Write the report in the language the user is conversing in.
 
-If a visualization capability is available in this environment (a visualize/dashboard
-skill, or artifact publishing), offer to render the loop history as a one-glance
-dashboard: findings per iteration by severity (Failed/Warning trend), the verdict
-progression toward Pass, and each resolved finding listed as Pass with what caused the
-retry. The text report above remains the source of truth; the dashboard is a view.
+Then offer to render the loop history as a one-glance dashboard using the
+`loop-dashboard` skill bundled in this plugin: findings per iteration by severity
+(Failed/Warning trend), the verdict progression toward Pass, and each resolved finding
+listed as Pass with what caused the retry. If the user's environment has a richer
+visualization skill they prefer, use that instead — the data is the same. The text
+report above remains the source of truth; the dashboard is a view.
