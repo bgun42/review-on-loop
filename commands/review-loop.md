@@ -64,22 +64,23 @@ which is the exact, non-fuzzy trigger for the no-progress stop condition below.
 The ledger is also what the dashboard and CI read, and where `accepted` warnings are
 recorded so they are not re-litigated in future runs.
 
-## Model routing (orchestration)
+## Model configuration (user-owned)
 
-Loop roles reward different model strengths, and the harness's per-subagent model
-override (Agent-tool `model` parameter, or agent-definition frontmatter) lets you
-exploit that:
+Read `.agent-review/config.json` (written by `/review-init`; roles: `developer`,
+`fixer`, `reviewer`, `gate`). When spawning each subagent, pass that role's model via
+the harness's model override where supported; `inherit`, a missing key, or a missing
+file all mean the session model. **The user's configuration is authoritative — never
+silently override it.**
 
-- **Reviewer and final gate → the strongest model available.** Judging is the
-  quality ceiling of the whole loop: the loop converges on the *judge's* standards,
-  not the author's. Never route the reviewer to a weaker model than the fixer.
-- **Develop and fix steps → the session's default (or a mid-tier) model.** Authoring
-  mistakes are cheap here precisely because the reviewer catches them — that safety
-  net is the point of the loop.
-- **Controller (you) → the session model**; your job is bookkeeping, not judgment.
+One sanity check at loop start, once: if the `reviewer` or `gate` is configured on a
+weaker tier than `developer`/`fixer` (known tier order haiku < sonnet < opus <
+top-tier; skip when either side is `inherit`/unknown), warn the user — the loop
+converges on the judge's standards, so a weak judge caps what the loop can guarantee —
+then proceed exactly as configured.
 
-If the environment has no per-agent model override, run everything on the session
-model — the loop still works, it just spends more where it didn't need to.
+If no config exists, run everything on the session model and mention that
+`/review-init` enables per-role model routing (e.g., a stronger model on the
+reviewer/gate while develop/fix stay on a cheaper tier).
 
 ## The loop (max 3 iterations)
 

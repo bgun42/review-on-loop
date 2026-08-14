@@ -61,8 +61,12 @@ verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 �
   (`.agent-review/ledger.json`)이 반복 간 발견 상태(Pass/open/recurred/accepted)를
   추적하고, 성공 선언 전 **최종 게이트** 리뷰어가 독립 확인하며, 잔여 Warning은 명시적
   처분(수용/이슈 발행/즉시 정리)을 받습니다.
-- **모델 라우팅**: 리뷰어·최종 게이트는 가용한 최상위 모델, 개발·수정은 세션(또는
-  중간 티어) 모델 — 루프는 심판의 기준으로 수렴하므로 모델 강도는 심판에 씁니다.
+- **모델 라우팅은 사용자 소유**: repo당 한 번 `/review-init`을 실행해 루프 역할별
+  모델(`developer` / `fixer` / `reviewer` / `gate`)을 직접 설정합니다
+  (`.agent-review/config.json`). 루프는 설정을 그대로 따르며, 유일한 개입은
+  리뷰어/게이트가 개발 모델보다 약하게 설정된 경우의 1회 경고입니다 — 루프는 심판의
+  기준으로 수렴하므로 그 구성은 루프가 보장할 수 있는 상한을 낮춥니다. 통상적 선택:
+  리뷰어·게이트에 최상위 모델, 개발·수정은 저렴한 티어.
 - 구성 요소들은 모든 리뷰 리포트 끝의 기계가독 JSON 블록(`verdict`, `findings[]`)으로
   연동됩니다 — 이를 이용한 GitHub Actions 게이트·Stop 훅 레시피는
   [docs/ci.md](docs/ci.md) 참고.
@@ -83,6 +87,7 @@ verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 �
 
 ```
 commands/
+├── review-init.md            # repo별 초기화: 역할→모델 설정, 원장 스캐폴딩
 └── review-loop.md            # 목표 기반 develop→review→fix 루프 제어자
 skills/
 ├── agent-work-review/

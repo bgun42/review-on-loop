@@ -63,9 +63,13 @@ The plugin also ships a goal-driven develop → review → fix loop:
   finding across iterations (Pass / open / recurred / accepted), a **final gate**
   reviewer independently confirms success before the loop exits, and remaining
   warnings get an explicit disposition (accept / file issue / clean up now).
-- **Model routing**: reviewers and the final gate run on the strongest model available,
-  develop/fix steps on the session or a mid-tier model — the loop converges on the
-  judge's standards, so the judge is where model strength pays.
+- **Model routing, user-owned**: run `/review-init` once per repo to choose which
+  model each loop role uses (`developer` / `fixer` / `reviewer` / `gate`, written to
+  `.agent-review/config.json`). The loop follows your configuration exactly; the only
+  intervention is a one-time warning if the reviewer/gate is set weaker than the
+  developer — the loop converges on the judge's standards, so that setup caps what it
+  can guarantee. Typical choice: strongest model on reviewer/gate, cheaper tier on
+  develop/fix.
 - The pieces interoperate through a machine-readable JSON block (`verdict`,
   `findings[]`) that every review report ends with — see [docs/ci.md](docs/ci.md) for
   a GitHub Actions gate and a Stop-hook recipe built on it.
@@ -87,6 +91,7 @@ CDN dependencies, so it ships with the plugin and works offline).
 
 ```
 commands/
+├── review-init.md            # per-repo setup: role→model config, ledger scaffolding
 └── review-loop.md            # goal-driven develop→review→fix loop controller
 skills/
 ├── agent-work-review/
