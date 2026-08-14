@@ -1,5 +1,5 @@
 ---
-description: Drive a develop → review → fix loop that stops when the user's stated goal is met and the review verdict is Approve
+description: Drive a develop → review → fix loop that stops when the user's stated goal is met and the review verdict is Pass
 argument-hint: <goal and acceptance criteria, e.g. "fleet fuel-total endpoint works per house rules; existing data and callers unbroken; tests pass">
 ---
 
@@ -48,7 +48,7 @@ report and its machine-readable JSON block (`verdict`, `findings`).
 1. **Success** — BOTH of:
    - every acceptance criterion from the goal contract verifies (run the checks now,
      each iteration — don't assume last iteration's result still holds), AND
-   - review verdict is `approve` or `approve_with_nits`.
+   - review verdict is `pass` or `pass_with_warnings`.
    → **Stop.** Report success (see Final report).
 2. **Iteration cap** — this was iteration 3 and success was not reached.
    → **Stop.** Escalate to the user with the current state.
@@ -57,24 +57,26 @@ report and its machine-readable JSON block (`verdict`, `findings`).
    → **Stop.** Escalate: the loop is oscillating and human judgment is needed.
    Continuing would burn cost re-litigating the same code.
 
-Nit-only findings never keep the loop running — if the only reason you would iterate
-again is nits, that is success condition territory, not another cycle.
+Warning-only findings never keep the loop running — if the only reason you would
+iterate again is warnings, that is success condition territory, not another cycle.
 
 ### 4. Fix
 
-Run the `apply-review-findings` skill on the review report: Blockers and Majors,
-Minors only when trivially safe, never Nits, minimal diffs, each fix verified against
-the finding's evidence. Then return to step 2.
+Run the `apply-review-findings` skill on the review report: every Failed finding,
+Warnings only when trivially safe, minimal diffs, each fix verified against the
+finding's evidence and reported as **Pass**. Then return to step 2.
 
 ## Final report
 
 Whatever the exit path, tell the user:
 
 - **Exit reason**: goal met / iteration cap / no progress.
-- **Goal verification**: each acceptance criterion with its check result and evidence.
-- **Loop history**: per iteration — verdict, findings count by severity, what was fixed.
-- **Remaining items**: open nits, skipped findings with reasons, anything out of scope
-  that was noticed but deliberately untouched.
+- **Goal verification**: each acceptance criterion with its check result (**Pass** /
+  Fail) and evidence.
+- **Loop history**: per iteration — verdict, Failed/Warning counts, and each resolved
+  finding listed as **Pass**.
+- **Remaining items**: open warnings, skipped findings with reasons, anything out of
+  scope that was noticed but deliberately untouched.
 - On escalation: the specific decision the user needs to make.
 
 Write the report in the language the user is conversing in.

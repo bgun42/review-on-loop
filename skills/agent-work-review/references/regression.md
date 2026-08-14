@@ -53,8 +53,9 @@ column/field, event name:
 ## Severity guidance
 
 - A consumer that demonstrably breaks (compile error, wrong result, unhandled
-  exception, wire-format break) → **Blocker**.
+  exception, wire-format break) → **Failed** (report it first — nothing outranks
+  broken behavior).
 - A contract change whose consumers you cannot fully enumerate (public API, shared DB,
-  cross-repo) → **Major**, flagged "Needs verification", with the enumeration you did
+  cross-repo) → **Failed**, flagged "Needs verification", with the enumeration you did
   manage.
-- A modified test assertion without stated intent → **Major** until explained.
+- A modified test assertion without stated intent → **Failed** until explained.

@@ -46,12 +46,12 @@ serves ~500 vessels, so one request issues ~500 queries" is a finding. "This mig
 slow" is not — either establish the scale or drop it.
 
 If the loop bound is provably small and fixed (e.g., iterating over 7 weekdays), an N+1
-there is a **Nit** at most. Severity follows the realistic N and the request rate of the
-code path, not the pattern's name.
+there is a low-priority **Warning** at most — often not worth reporting. Severity
+follows the realistic N and the request rate of the code path, not the pattern's name.
 
 ## Severity guidance
 
-- Unbounded read / N+1 on a growing collection in a hot path → **Major** (or
-  **Blocker** if it also multiplies metered cost — see `cost.md`).
-- Sync-over-async in a request path → **Major**.
-- Hoistable computation, quadratic on small-N, missed concurrency → **Minor**.
+- Unbounded read / N+1 on a growing collection in a hot path → **Failed** (and say so
+  in the finding when it also multiplies metered cost — see `cost.md`).
+- Sync-over-async in a request path → **Failed**.
+- Hoistable computation, quadratic on small-N, missed concurrency → **Warning**.

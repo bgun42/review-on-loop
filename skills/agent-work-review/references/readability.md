@@ -1,9 +1,10 @@
 # Readability Review
 
 Goal: judge whether the *next human* — who has none of the agent's session context —
-can read this code and understand what it does and why. Readability findings are almost
-never blockers, but they are where agent-written code most visibly differs from
-human-written code, and where unreviewed agent output degrades a codebase fastest.
+can read this code and understand what it does and why. Readability findings almost
+never fail a review on their own, but they are where agent-written code most visibly
+differs from human-written code, and where unreviewed agent output degrades a codebase
+fastest.
 
 ## Agent-specific smells (check these first)
 
@@ -57,6 +58,6 @@ finding.
 
 ## Severity guidance
 
-- Misleading name / false comment / dead code that will confuse maintenance → **Minor**
-  (upgrade to **Major** only if it hides a behavioral trap).
-- Narration comments, small duplication, style polish → **Nit**.
+- Misleading name / false comment / dead code that will confuse maintenance →
+  **Warning** (upgrade to **Failed** only if it hides a behavioral trap).
+- Narration comments, small duplication, style polish → low-priority **Warning**.

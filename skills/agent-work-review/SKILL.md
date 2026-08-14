@@ -128,35 +128,34 @@ Write the report in the language the user is conversing in. Use this structure:
 ```
 ## Review: <short description of the change>
 
-**Verdict**: Approve | Approve with nits | Needs changes | Block
+**Verdict**: Pass | Pass with warnings | Fail
 
 <one-paragraph summary: what the change does and the overall assessment>
 
 ### Findings
 
-#### [Blocker] <title>            ← breaks existing behavior, or unbounded cost growth
+#### [Failed] <title>             ← must be fixed before this lands: broken behavior,
+                                    silent data corruption, unbounded cost growth,
+                                    serious performance defect, written-rule violation
 <file>:<line> — evidence, why it fails, suggested fix. (Confirmed / Needs verification)
 
-#### [Major] <title>              ← performance/cost defect, contract risk, hard-to-maintain code
+#### [Warning] <title>            ← should be considered, does not block: readability,
+                                    convention drift, missed cheap optimization
 ...
 
-#### [Minor] <title>              ← readability, convention deviations
-...
-
-#### [Nit] <title>                ← optional polish; never block on these
-...
-
-### What was checked and clean
-<one line per pass that found nothing, e.g. "Cost: no metered calls in this diff">
+### Passed checks
+<one line per pass that found nothing, e.g. "Cost: no metered calls in this diff — Pass">
 ```
 
 Rules for the report:
 
-- Order findings by severity. If there are no findings in a severity band, omit the band.
-- Verdict follows from the worst finding: any Blocker → **Block**; any Major →
-  **Needs changes**; only Minor → **Approve with nits**; nothing → **Approve**.
-- The "clean" section is not filler — it tells the reader which risks were actually
-  ruled out, which is half the value of a review.
+- Two severities only. **Failed** = the change must not land as-is. **Warning** =
+  worth fixing, but a human may reasonably accept it. Order Failed findings worst
+  first (broken behavior and data corruption above cost, cost above rule violations).
+- Verdict follows from the findings: any Failed → **Fail**; only Warnings →
+  **Pass with warnings**; nothing → **Pass**.
+- The "Passed checks" section is not filler — it tells the reader which risks were
+  actually ruled out, which is half the value of a review.
 - Do not pad. Three verified findings beat ten speculative ones. An empty findings list
   with a confident "checked and clean" section is a perfectly good review.
 - Suggest fixes but do not apply them unless the user asks. The deliverable of this
@@ -171,10 +170,10 @@ this block only mirrors it.
 
 ```json
 {
-  "verdict": "approve | approve_with_nits | needs_changes | block",
+  "verdict": "pass | pass_with_warnings | fail",
   "findings": [
     {
-      "severity": "blocker | major | minor | nit",
+      "severity": "failed | warning",
       "title": "same title as the prose finding",
       "file": "relative/path",
       "line": 0,
@@ -186,5 +185,5 @@ this block only mirrors it.
 ```
 
 Rules: `verdict` and `findings` must match the prose exactly (same count, same
-severities, same titles — a mismatch breaks the loop that consumes it). An approved
-review has `"findings": []` or nit-only entries.
+severities, same titles — a mismatch breaks the loop that consumes it). A passing
+review has `"findings": []` or warning-only entries.

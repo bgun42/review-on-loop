@@ -16,7 +16,7 @@
     {
       "id": 3,
       "prompt": "The agent made a small change to the date formatting helper (uncommitted). Can you check it's safe to commit?",
-      "expected_output": "A clean-diff review: no fabricated findings, explicit 'checked and clean' section per pass, verdict Approve. Tests the false-positive rate.",
+      "expected_output": "A clean-diff review: no fabricated findings, explicit 'Passed checks' section per pass, verdict Pass. Tests the false-positive rate.",
       "files": ["fixture repo (clean change)"]
     }
   ]

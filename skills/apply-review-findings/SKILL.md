@@ -1,8 +1,9 @@
 ---
 name: apply-review-findings
 description: >
-  Apply the findings of a code review to the working tree: fix Blockers and Majors,
-  optionally Minors, never Nits, and verify each fix resolves the finding's evidence.
+  Apply the findings of a code review to the working tree: fix every Failed finding,
+  Warnings only when safe or requested, and verify each fix resolves the finding's
+  evidence — resolved findings are reported as Pass.
   Use this skill whenever a review report exists (from the agent-work-review skill or
   any structured review) and the user asks to act on it — "apply the review findings",
   "fix what the review found", "리뷰 지적사항 반영해줘", "리뷰에서 나온 문제 고쳐줘" —
@@ -29,12 +30,12 @@ If there is no review report at all, say so and stop — running a review first 
 
 ## Step 2 — Decide what to fix
 
-- **Blocker, Major**: always fix.
-- **Minor**: fix only when the user asked for it, or when the fix is a strict deletion
-  (dead code, narration comments) that cannot change behavior.
-- **Nit**: never fix in this pass. This is a convergence rule, not laziness: a loop
-  that chases nits produces new diffs for the next review to comment on and never
-  terminates. Nits stay in the report for a human to accept or batch later.
+- **Failed**: always fix, in the report's order (worst first).
+- **Warning**: fix only when the user asked for it, or when the fix is a strict
+  deletion (dead code, narration comments) that cannot change behavior. Everything
+  else stays untouched. This is a convergence rule, not laziness: a loop that chases
+  warnings produces new diffs for the next review to comment on and never terminates.
+  Remaining warnings stay in the report for a human to accept or batch later.
 - **Needs-verification findings**: verify first (trace the caller, find the partition
   key). If the finding turns out to be false, record it as `skipped — not reproducible`
   with your evidence instead of "fixing" a non-problem.
@@ -71,13 +72,14 @@ infrastructure available, verified by grep".
 ## Step 5 — Report
 
 Output a status table that reuses the review's exact finding titles (the next review
-pass and the loop controller correlate by title):
+pass and the loop controller correlate by title). A finding whose fix is applied and
+verified is reported as **Pass**:
 
 ```
 | # | Severity | Finding (title from review) | Status | Evidence of resolution |
 |---|----------|------------------------------|--------|------------------------|
-| 1 | Blocker  | ...                          | fixed  | ...                    |
-| 2 | Major    | ...                          | skipped — <reason> | ...        |
+| 1 | Failed   | ...                          | Pass   | ...                    |
+| 2 | Warning  | ...                          | skipped — <reason> | ...        |
 ```
 
 Then list files changed, and anything you deliberately did not touch (nits, unrelated

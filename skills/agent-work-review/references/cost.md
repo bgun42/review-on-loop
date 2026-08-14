@@ -85,7 +85,7 @@ it), and the scaling story: "fans out across all partitions of `ship-reports`
 
 - Metered call whose cost grows with data size or sits in an unbounded loop
   (cross-partition scan of a growing container, N+1 LLM calls, self-triggering change
-  feed) → **Blocker** or **Major** depending on the code path's traffic.
+  feed) → **Failed**.
 - Flat but avoidable overspend (query instead of point-read, `SELECT *`, payload
-  logging) → **Major** in hot paths, **Minor** in cold ones.
-- Missed cheap optimization (projection, batch API available) → **Minor**.
+  logging) → **Failed** in hot paths, **Warning** in cold ones.
+- Missed cheap optimization (projection, batch API available) → **Warning**.

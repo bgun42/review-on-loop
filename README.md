@@ -15,8 +15,10 @@ family of mistakes. This skill runs a five-pass review targeted at exactly those
 | **Conventions** | Divergence from *your repository's* established patterns — discovered from your `CLAUDE.md`, linter configs, and sibling files, never from generic "best practice" |
 
 Findings are verified against the actual code before being reported (each is marked
-**Confirmed** or **Needs verification**), ranked Blocker / Major / Minor / Nit, and
-rolled up into a verdict: Approve · Approve with nits · Needs changes · Block.
+**Confirmed** or **Needs verification**) and classified CI-style: **Failed** (must be
+fixed before landing) or **Warning** (advisory, does not block), rolled up into a
+verdict of **Pass · Pass with warnings · Fail**. Checks that found nothing are listed
+explicitly as passed, and once a finding is fixed it is reported as **Pass**.
 
 ## Install
 
@@ -53,8 +55,8 @@ The plugin also ships a goal-driven develop → review → fix loop:
 - Each iteration: develop (skipped if the diff already exists) → fresh-context review
   (`agent-work-review`) → stop-condition check → fix (`apply-review-findings`).
 - **It stops when your goal's acceptance criteria verify AND the review verdict is
-  Approve.** Safety stops: max 3 iterations, and escalation to you if findings stop
-  decreasing (oscillation). Nits never keep the loop running.
+  Pass.** Safety stops: max 3 iterations, and escalation to you if findings stop
+  decreasing (oscillation). Warnings never keep the loop running.
 - The pieces interoperate through a machine-readable JSON block (`verdict`,
   `findings[]`) that every review report ends with — you can consume it from CI too.
 
@@ -63,8 +65,8 @@ The `apply-review-findings` skill also works standalone: "apply the review findi
 
 > Tip: to *enforce* review on every session without invoking the loop, wire a Claude
 > Code [Stop hook](https://docs.anthropic.com/en/docs/claude-code/hooks) in your own
-> settings that runs a review and blocks completion on Blockers. That is a per-user
-> harness setting, so this plugin documents it rather than shipping it.
+> settings that runs a review and blocks completion on Failed findings. That is a
+> per-user harness setting, so this plugin documents it rather than shipping it.
 
 ## Structure
 
@@ -82,7 +84,7 @@ skills/
 │       ├── conventions.md        # discovering and enforcing repo precedent
 │       └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
 └── apply-review-findings/
-    └── SKILL.md              # fixes Blockers/Majors from a review report, never nits
+    └── SKILL.md              # fixes Failed findings from a review report, reports them as Pass
 ```
 
 ## License

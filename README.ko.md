@@ -15,8 +15,10 @@ AI 에이전트가 작성한 코드 변경분을 **커밋/머지 전에** 검토
 | **컨벤션** | *당신 저장소의* 확립된 패턴과의 괴리 — 기준은 일반론이 아니라 당신 repo의 `CLAUDE.md`·린터 설정·이웃 파일에서 발견합니다 |
 
 모든 발견 사항은 보고 전에 실제 코드로 재검증되며(**Confirmed** / **Needs
-verification** 구분), Blocker / Major / Minor / Nit로 등급화되어 최종 판정(Approve ·
-Approve with nits · Needs changes · Block)으로 집계됩니다.
+verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 필수 수정) /
+**Warning**(권고, 차단 안 함) → 최종 판정 **Pass · Pass with warnings · Fail**.
+문제없이 통과한 검사 항목은 명시적으로 Pass로 안내되고, 수정이 완료된 발견도
+**Pass**로 보고됩니다.
 
 ## 설치
 
@@ -51,9 +53,9 @@ Approve with nits · Needs changes · Block)으로 집계됩니다.
   먼저 전달하며, 없으면 물어봅니다.
 - 매 반복: 개발(이미 diff가 있으면 생략) → 신선한 컨텍스트 리뷰(`agent-work-review`)
   → 정지 조건 체크 → 수정(`apply-review-findings`).
-- **목표의 수용 기준이 검증되고 리뷰 판정이 Approve일 때 중지합니다.** 안전장치:
-  최대 3회 반복, 발견이 줄지 않으면(진동) 사용자 에스컬레이션. Nit만으로는 루프가
-  돌지 않습니다.
+- **목표의 수용 기준이 검증되고 리뷰 판정이 Pass일 때 중지합니다.** 안전장치:
+  최대 3회 반복, 발견이 줄지 않으면(진동) 사용자 에스컬레이션. Warning만으로는
+  루프가 돌지 않습니다.
 - 구성 요소들은 모든 리뷰 리포트 끝의 기계가독 JSON 블록(`verdict`, `findings[]`)으로
   연동됩니다 — CI에서 소비할 수도 있습니다.
 
@@ -61,7 +63,7 @@ Approve with nits · Needs changes · Block)으로 집계됩니다.
 
 > 참고: 루프 호출 없이 모든 세션에 리뷰를 *강제*하려면 Claude Code
 > [Stop 훅](https://docs.anthropic.com/en/docs/claude-code/hooks)을 본인 settings에
-> 걸어 Blocker가 있으면 종료를 막게 하면 됩니다. 사용자별 하니스 설정이라 이
+> 걸어 Failed 발견이 있으면 종료를 막게 하면 됩니다. 사용자별 하니스 설정이라 이
 > 플러그인은 배포 대신 문서로 안내합니다.
 
 ## 구조
@@ -80,7 +82,7 @@ skills/
 │       ├── conventions.md        # repo 선례 발견·대조 방법
 │       └── csharp-conventions.md # Microsoft C# 기본 컨벤션 (repo에 선례가 없을 때의 fallback)
 └── apply-review-findings/
-    └── SKILL.md              # 리뷰 리포트의 Blocker/Major 수정, Nit는 절대 건드리지 않음
+    └── SKILL.md              # 리뷰 리포트의 Failed 발견 수정, 해소된 항목은 Pass로 보고
 ```
 
 ## 라이선스

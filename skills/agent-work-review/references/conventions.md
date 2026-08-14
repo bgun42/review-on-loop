@@ -19,8 +19,8 @@ review's job is to keep one dialect.
 Sources, in order of authority:
 
 1. **Explicit house rules** — `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, docs/ style
-   guides, PR templates. These are contracts; a violation here is automatically at
-   least **Major**, because the team wrote the rule down precisely so it would be
+   guides, PR templates. These are contracts; a violation here is automatically
+   **Failed**, because the team wrote the rule down precisely so it would be
    enforced.
 2. **Enforced tooling** — linter/formatter/analyzer configs. If a rule is configured,
    run the tool on the changed files rather than eyeballing (it's faster and exact).
@@ -68,7 +68,8 @@ it belongs in readability (or nowhere).
 ## Severity guidance
 
 - Violation of a written house rule, or a second mechanism duplicating an established
-  one → **Major**.
+  one → **Failed**.
 - Divergence from consistent sibling precedent (naming, placement, error dialect) →
-  **Minor**.
-- Divergence where the repo itself is already inconsistent → **Nit**, or silence.
+  **Warning**.
+- Divergence where the repo itself is already inconsistent → low-priority **Warning**,
+  or silence.
