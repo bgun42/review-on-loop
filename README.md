@@ -3,12 +3,6 @@
   <a href="./README.ko.md"><img src="https://img.shields.io/badge/한국어-30363D?style=for-the-badge" alt="한국어로 읽기" /></a>
 </p>
 
-# Veriloop
-
-A **spec-grounded code review and repair loop** for Codex and Claude Code.
-
-It checks agent-written changes from five perspectives, then repeats for up to three iterations until no failed finding remains and the goal's acceptance checks pass as executable commands.
-
 <p align="center">
   <a href="#install"><img src="https://img.shields.io/badge/▶_INSTALL-OPEN-111111?style=for-the-badge&labelColor=5B5B5B" alt="Install Veriloop" /></a>
   &nbsp;&nbsp;
@@ -27,6 +21,11 @@ It checks agent-written changes from five perspectives, then repeats for up to t
   <a href="https://github.com/dev-geon/veriloop/releases/latest"><img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat" alt="Latest release" /></a>
   <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat" alt="MIT license" /></a>
 </p>
+
+# Veriloop
+A **spec-grounded code review and repair loop** for Codex and Claude Code.
+
+It checks agent-written changes from five perspectives, then repeats for up to three iterations until no failed finding remains and the goal's acceptance checks pass as executable commands.
 
 ## Skill architecture
 
