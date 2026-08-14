@@ -2,7 +2,7 @@
 name: draft-spec
 description: >
   Use this skill to produce the written specification for a concrete piece of upcoming
-  development work when none exists yet. The spec gates in the agent-work-review and
+  development work when none exists yet. The spec gates in the veriloop and
   run-review-loop skills route here whenever
   they find no referenced spec; and users can invoke it directly in any language:
   "write a spec for this first",
@@ -40,7 +40,7 @@ user.
 - **Conventions**: open siblings of the code the goal touches (same directory or same
   layer) and note the established patterns — naming, layering, error handling, DI,
   how queries are built, where tests live. This is the same baseline method as the
-  review skill's Step 2 (`skills/agent-work-review/references/conventions.md`); if
+  review skill's Step 2 (`skills/veriloop/references/conventions.md`); if
   `.agent-review/baseline.md` exists, start from it and spot-check.
 - **Workflow**: how changes land here — branch and PR conventions from recent history
   (`git log`), CI configuration, the commands that build and test this project. The

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Veriloop"
+  short_description: "Run a five-pass blind code review"
+  default_prompt: "Use $veriloop to independently review the current diff against its confirmed specification."

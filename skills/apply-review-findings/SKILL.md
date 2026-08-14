@@ -4,7 +4,7 @@ description: >
   Apply the findings of a code review to the working tree: fix every Failed finding,
   Warnings only when safe or requested, and verify each fix resolves the finding's
   evidence — resolved findings are reported as Pass.
-  Use this skill whenever a review report exists (from the agent-work-review skill or
+  Use this skill whenever a review report exists (from the veriloop skill or
   any structured review) and the user asks to act on it — "apply the review findings",
   "fix what the review found", "리뷰 지적사항 반영해줘", "리뷰에서 나온 문제 고쳐줘" —
   and as the fix step inside the run-review-loop skill.
@@ -21,12 +21,12 @@ nothing else.
 
 Locate the review report (the user points at it, or it is the output of a review that
 just ran in this conversation). Prefer the machine-readable JSON block at the end of an
-`agent-work-review` report; fall back to parsing the prose findings. For each finding
+`veriloop` report; fall back to parsing the prose findings. For each finding
 capture: severity, title, file/line, the evidence (the caller that breaks, the query
 that fans out), and the suggested fix.
 
 If there is no review report at all, say so and stop — running a review first is the
-`agent-work-review` skill's job, not this one's.
+`veriloop` skill's job, not this one's.
 
 ## Step 2 — Decide what to fix
 

@@ -1,4 +1,4 @@
-# C# Default Conventions (Microsoft baseline)
+# C# Default Conventions Reference (Microsoft baseline)
 
 Distilled from Microsoft's official guidance:
 [.NET coding conventions](https://learn.microsoft.com/dotnet/csharp/fundamentals/coding-style/coding-conventions)

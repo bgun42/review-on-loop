@@ -1,4 +1,4 @@
-# Convention Review
+# Convention Review Reference
 
 Goal: verify the diff looks like it was written by the team that owns the repository.
 The standard is *this repository's* established practice — discovered, not assumed.

@@ -1,5 +1,5 @@
 ---
-name: agent-work-review
+name: veriloop
 description: >
   Review concrete recent code changes before commit, merge, or deployment: a diff,
   uncommitted work, branch, PR, or just-finished feature written by a user, coding
@@ -7,12 +7,13 @@ description: >
   inspect, final pass, 검토, 리뷰, 확인, or 훑어보기, including requests focused only on
   regression, performance, metered-service cloud cost, readability, or repository
   conventions. Ground the review in a confirmed written specification; when none
-  exists, route to the bundled draft-spec skill before reviewing. Do not use for
+  exists, route to the bundled draft-spec skill before reviewing. Use when the user
+  invokes $veriloop or requests Veriloop review. Do not use for
   reviewing documents or designs, applying existing findings, writing review-process
   guidance, or discussing review culture.
 ---
 
-# Agent Work Review
+# Veriloop
 
 Review a diff the way a careful senior engineer reviews a teammate's PR — except the
 teammate is an AI agent, which changes what you should be suspicious of. Agents write
@@ -28,6 +29,24 @@ plausible-looking code fast, but they tend to make a specific family of mistakes
 Your job is to catch these before the change lands. Work through the five passes below
 in order. Report only what you have verified against the actual code — a review full of
 speculative findings trains the reader to ignore it.
+
+## Blind invocation contract
+
+When `run-review-loop` invokes this skill in strict blind mode, treat the review as an
+isolated evaluation:
+
+- Accept only the strict-blind invocation marker, repository path, frozen review
+  target, confirmed specification, scope bounds, and risk focus.
+- Do not accept or request the developer's reasoning, fixer explanation, prior review
+  reports, findings ledger, acceptance-check results, or gate probes.
+- Do not read `.agent-review/`, including its baseline, ledger, or run archives.
+- Inspect the code and specification independently. Do not infer what another reviewer
+  already checked.
+
+This is context isolation, not a filesystem security boundary. If the invocation
+contains forbidden history, stop and ask the controller for a clean brief instead of
+continuing with contaminated context. Standalone reviews may use prior review state
+only when the user explicitly asks for a follow-up review.
 
 ## Step 0 — Specification gate
 
@@ -81,11 +100,11 @@ the conventions pass (Step 3E) is only as good as the baseline you build here. I
 prevents the most annoying reviewer failure: flagging code for violating a rule the
 repository doesn't actually have.
 
-If `.agent-review/baseline.md` exists in the repo, start from it (a cached baseline
-from a previous review) and spot-check it against current code before trusting it —
-see `references/conventions.md` for the cache rules. If `.agent-review/runs/` exists,
-read the latest run's report too — the previous cycle's findings are context for what
-to re-check.
+Outside strict blind mode, `.agent-review/baseline.md` may be used as a cached
+convention baseline after spot-checking it against current code; see
+`references/conventions.md`. Read prior run reports only when the user explicitly
+requests a follow-up review. In strict blind mode, ignore the entire
+`.agent-review/` directory.
 
 ## Step 3 — The five review passes
 

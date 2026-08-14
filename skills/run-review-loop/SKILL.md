@@ -40,7 +40,27 @@ When delegating, apply an exact configured model only if the host supports model
 overrides. If the configured model cannot be used, stop and ask rather than silently
 substituting another model. The user's configuration is authoritative.
 
-## 3. Maintain the findings ledger
+Treat a missing `blind_mode` as `strict`. Strict is the only persistent mode; never
+save relaxed mode as a repository default.
+
+## 3. Enforce strict blind mode
+
+Before development, verify that the host can:
+
+1. create a unique internal subagent for every iteration reviewer and final gate;
+2. start each with no controller, developer, fixer, or prior-review conversation;
+3. send an allowlisted brief without attaching hidden conversation history.
+
+If any guarantee is unavailable, stop before changing code and name the unsupported
+capability. Ask whether the user authorizes relaxed review **for this run only**.
+Never infer approval from urgency, configuration, or a previous run. If approved, use
+the strongest available separation, keep the review verdict vocabulary unchanged,
+label each affected review and gate `independence: reduced` in the controller
+record, and record the reason and authorization in `run.json`. If not
+approved, exit with `blind_context_unavailable`. Never describe relaxed review as
+independent or blind.
+
+## 4. Maintain the findings ledger
 
 Create .agent-review/ledger.json with {"findings": []} when absent.
 
@@ -48,7 +68,11 @@ Use a stable slug derived from file and finding title. Track severity, title, fi
 first_seen, last_seen, and status (open, pass, recurred, or accepted). A finding that
 returns after reaching pass becomes recurred.
 
-## 4. Iterate at most three times
+The controller owns the ledger. Never send it to a reviewer or gate. Reconcile
+accepted warnings after receiving a blind report instead of preloading them into the
+reviewer's context.
+
+## 5. Iterate at most three times
 
 ### Develop
 
@@ -59,17 +83,29 @@ the applicable AGENTS.md, CLAUDE.md, contributor guidance, and repository checks
 
 Use the host's internal subagent or delegation mechanism when available. Do not
 create a user-owned task or external thread merely to simulate an internal worker.
+Give the worker the specification and acceptance checks, but do not give it review
+reports, the review checklist, gate plans, holdout probes, or reviewer reasoning.
 
-### Review in fresh context
+### Review in a unique blind context
 
-Run the bundled agent-work-review skill in a fresh reviewer context. Give it only the
-repository path, review target, confirmed specification, and prior accepted warnings.
-Require the prose report and its final machine-readable JSON block.
+Create a new reviewer subagent for this iteration. Never reuse a reviewer from an
+earlier iteration or gate. Run the bundled `veriloop` skill with only:
 
-If the host cannot provide a fresh context, disclose the reduced independence before
-reviewing inline. Never claim an independent review occurred when it did not.
+- strict-blind invocation marker;
+- repository path;
+- frozen review target;
+- confirmed specification;
+- scope bounds;
+- risk focus.
 
-Reconcile every returned finding with the ledger.
+Do not send developer or fixer reasoning, prior reports, ledger contents, accepted
+warnings, acceptance results, or gate probes. Tell the reviewer not to read
+`.agent-review/`. If forbidden context leaks into the brief, discard that review and
+start a clean reviewer; if that cannot be done, return to the strict-mode preflight.
+
+Require the prose report and final machine-readable JSON block. The controller then
+reconciles findings and filters previously accepted warnings without exposing history
+to the reviewer.
 
 ### Check stop conditions in order
 
@@ -80,13 +116,59 @@ Reconcile every returned finding with the ledger.
 3. No progress: any finding is recurred, or the failed count did not decrease from
    the previous iteration. Stop and ask for the specific human decision needed.
 
-### Final gate
+### Final blind gate with late-bound probes
 
-Delegate one additional fresh reviewer using the configured gate model. Focus the
-brief on the specification's Risk focus; if absent, choose the highest-evidence
-remaining risk and state the choice. The gate holds when it produces no new failed
-finding. Add any new failed finding to the ledger and continue within the same
-three-iteration limit.
+When a success candidate is reached, freeze it by recording the commit plus a digest
+of the working-tree diff. Any target change invalidates the gate.
+
+Create one additional gate subagent that is new to the run and uses the configured
+gate model. Give it only the same allowlisted inputs as a blind reviewer plus the
+frozen snapshot identifier. Do not reveal the iteration verdict, acceptance results,
+prior findings, ledger, developer explanations, or previous gate probes.
+
+The gate must inspect the frozen implementation first and then generate holdout probes
+that did not exist in the developer brief:
+
+- For executable code, run at least two safe probes from different categories:
+  boundary or invalid inputs, state-transition ordering, failure injection,
+  property/metamorphic behavior, differential behavior, or test-strength/mutation
+  checks.
+- For documentation or non-executable configuration, run at least one independent
+  observable assertion.
+- At least one probe must exercise an in-spec behavior not identical to a named
+  acceptance check.
+
+Prefer non-mutating commands. If a temporary test is required, use an isolated
+temporary workspace and never edit the target worktree. A probe that cannot execute
+is blocked, not passed. The gate must not fix code.
+
+The gate holds only when the snapshot is unchanged, every holdout probe passes, and no
+new Failed finding exists. Its report must include the snapshot, probe category,
+command or assertion, captured evidence, and any new Failed finding.
+
+Require a final machine-readable gate block:
+
+```json
+{
+  "gate": "hold | fail | blocked",
+  "snapshot": "commit-and-diff identifier",
+  "independence": "strict | reduced",
+  "probes": [
+    {
+      "category": "boundary | state | failure | property | differential | mutation | assertion",
+      "check": "command or observable assertion",
+      "result": "pass | fail | blocked",
+      "evidence": "captured output"
+    }
+  ],
+  "findings": []
+}
+```
+
+On failure, add the finding to the controller-owned ledger and give the fixer only the
+failed invariant and minimal reproducible evidence; withhold passed probes and the
+rest of the gate's reasoning. After fixing and blind review, create another entirely
+new gate that generates new probes. Continue within the same three-iteration limit.
 
 Warnings never keep the loop running by themselves.
 
@@ -97,16 +179,21 @@ the review report, confirmed specification, risk focus, and ledger. Require mini
 edits and verification against each finding's evidence. Then review again in a fresh
 context.
 
-## 5. Archive and report
+For a blind-gate failure, pass only the minimal failure packet defined above, not the
+full gate report. Never let the fixer read passed holdout probes.
+
+## 6. Archive and report
 
 On every exit, create the next numbered .agent-review/runs/NNN/ directory. Store each
 iteration's prose review plus JSON block and a run.json containing the goal, spec
-path, per-iteration verdict/counts, acceptance results, and exit reason. Do not copy
-the specification into the archive.
+path, per-iteration verdict/counts, acceptance results, blind mode, any authorized
+relaxation, gate snapshot, holdout probe evidence, and exit reason. Write archives
+only after the run exits so no active reviewer can consume them. Do not copy the
+specification into the archive.
 
 Report:
 
-- exit reason: goal met, iteration cap, or no progress;
+- exit reason: goal met, iteration cap, no progress, or blind context unavailable;
 - every acceptance criterion, exact check, Pass/Fail, and captured evidence;
 - each iteration's verdict and failed/warning counts;
 - every resolved finding as Pass;

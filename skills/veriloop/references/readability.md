@@ -1,4 +1,4 @@
-# Readability Review
+# Readability Review Reference
 
 Goal: judge whether the *next human* — who has none of the agent's session context —
 can read this code and understand what it does and why. Readability findings almost

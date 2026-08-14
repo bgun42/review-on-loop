@@ -1,4 +1,4 @@
 interface:
   display_name: "Run Review Loop"
-  short_description: "Run a bounded develop-review-fix cycle"
-  default_prompt: "Use $run-review-loop to implement this confirmed specification until its checks and review pass."
+  short_description: "Run a strict blind develop-review-fix cycle"
+  default_prompt: "Use $run-review-loop to implement this confirmed specification through strict blind review and a late-bound gate."

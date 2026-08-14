@@ -9,6 +9,7 @@ Set up `.agent-review/` in the current repository so the review skills and the
 `/work` command run with the user's own choices — especially which model each
 loop role uses. Nothing here is mandatory: every skill in this plugin works without
 initialization, on the session model. Init exists so the user can be deliberate.
+Strict blind review remains the default with or without initialization.
 
 Arguments: $ARGUMENTS
 
@@ -37,6 +38,7 @@ Create `.agent-review/config.json`:
 
 ```json
 {
+  "blind_mode": "strict",
   "models": {
     "developer": "inherit",
     "fixer": "inherit",
@@ -45,6 +47,10 @@ Create `.agent-review/config.json`:
   }
 }
 ```
+
+`strict` is the only value that may be saved. Never persist relaxed mode. When the
+host cannot provide a unique clean reviewer or gate context, `/work` pauses and asks
+the user for a one-run relaxation; previous approval never carries forward.
 
 Also scaffold `.agent-review/ledger.json` (`{"findings": []}`) if absent, and suggest
 gitignoring `ledger.json` while noting `config.json` and `baseline.md` are worth
@@ -66,5 +72,5 @@ available model on `reviewer`/`gate`, session or mid-tier on `developer`/`fixer`
 
 ## 5. Confirm
 
-Show the final per-role table and where it was written, in the language the user is
-conversing in.
+Show strict blind mode, the final per-role table, and where it was written, in the
+language the user is conversing in.

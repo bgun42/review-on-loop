@@ -4,15 +4,15 @@
     "name": "bgun42"
   },
   "metadata": {
-    "description": "Review code changes produced by AI agents before they land: regression risk, performance defects, cloud-cost defects, readability, and convention adherence.",
-    "version": "0.7.0"
+    "description": "Strict-blind, specification-grounded review and repair loops for AI-written code.",
+    "version": "0.8.0"
   },
   "plugins": [
     {
       "name": "veriloop",
       "source": "./",
-      "description": "Reviews agent-produced diffs across five dimensions — regression, performance, cloud cost (Cosmos DB and other metered services), readability, repo-convention adherence — spec-gated: work without a written specification is first specified via the bundled draft-spec skill (codebase analysis → goal analysis → confirmed spec), then reviewed.",
-      "version": "0.7.0",
+      "description": "Reviews agent-produced diffs with unique blind reviewers across regression, performance, cloud cost, readability, and repository conventions, then uses late-bound holdout probes before declaring success.",
+      "version": "0.8.0",
       "author": {
         "name": "bgun42"
       },

@@ -10,27 +10,27 @@ Codex와 Claude Code에서 함께 사용하는 **명세 기반 코드 리뷰·�
 
 ```mermaid
 flowchart TD
-    Init["초기화 (선택)<br/>initialize-review-loop · /init"] --> State["모델 설정<br/>.agent-review/config.json"]
+    Init["초기화 (선택)<br/>initialize-review-loop · /init"] --> State["엄격 블라인드 모드 + 모델 설정<br/>.agent-review/config.json"]
     Draft["명세 확정<br/>draft-spec · /draft"] --> Spec["확정된 명세<br/>실행 가능한 인수 조건"]
     State --> Run["루프 실행<br/>run-review-loop · /work"]
     Spec --> Run
     Run --> Develop["1. 구현"]
-    Develop --> Review["2. 독립 리뷰<br/>agent-work-review"]
+    Develop --> Review["2. 신규 블라인드 리뷰어<br/>veriloop"]
     Review --> Decision{"인수 조건 통과<br/>Failed 없음?"}
     Decision -- "아니요" --> Fix["3. 지적사항 수정<br/>apply-review-findings"]
     Fix --> Review
-    Decision -- "예" --> Gate["4. 독립 최종 게이트"]
+    Decision -- "예" --> Gate["4. 신규 블라인드 게이트<br/>후기 생성 holdout probe"]
     Gate -- "새 Failed 발견" --> Fix
     Gate -- "통과" --> Archive["5. 실행 기록 보관<br/>loop-dashboard"]
 ```
 
-`agent-work-review`는 단독으로도 사용할 수 있습니다. 확인된 명세가 없으면 먼저 `draft-spec`으로 연결되며, 명세 없는 변경을 추측으로 승인하지 않습니다.
+`veriloop`는 단독으로도 사용할 수 있습니다. 확인된 명세가 없으면 먼저 `draft-spec`으로 연결되며, 명세 없는 변경을 추측으로 승인하지 않습니다.
 
 ## 권장 워크플로
 
 | 단계 | Codex | Claude Code | 결과 |
 |---|---|---|---|
-| 0. 역할별 모델 설정 *(선택)* | `$initialize-review-loop` | `/init` | `.agent-review/config.json`과 findings ledger |
+| 0. 역할별 모델 설정 *(선택)* | `$initialize-review-loop` | `/init` | 엄격 블라인드 모드, 모델 설정, findings ledger |
 | 1. 작업 명세 확정 | `$draft-spec` | `/draft` | 저장소 규칙과 실행 가능한 인수 조건이 포함된 명세 |
 | 2. 구현·리뷰·수정 실행 | `$run-review-loop <목표>` | `/work <목표>` | 검증된 변경과 최종 판정 |
 | 3. 실행 결과 확인 | `$loop-dashboard` 또는 자연어 요청 | 자연어 요청 | 오프라인 HTML 대시보드 |
@@ -47,7 +47,7 @@ $initialize-review-loop
 /init
 ```
 
-설정은 `.agent-review/config.json`에 저장됩니다. 지정한 모델을 사용할 수 없으면 다른 모델로 몰래 대체하지 않고 루프를 중단합니다.
+설정과 `"blind_mode": "strict"`는 `.agent-review/config.json`에 저장됩니다. 지정한 모델을 사용할 수 없으면 다른 모델로 몰래 대체하지 않고 루프를 중단합니다.
 
 ### 1. 명세 작성과 확인
 
@@ -78,10 +78,23 @@ $run-review-loop docs/fleet-fuel-spec.md 기준으로 연료 합계 API를 구�
 루프 내부에서는 다음 순서가 반복됩니다.
 
 1. 기존 diff가 없다면 명세에 맞게 구현합니다.
-2. 새 컨텍스트의 리뷰어가 다섯 관점으로 변경을 검토합니다.
+2. 고유한 신규 블라인드 리뷰어가 `veriloop`의 다섯 관점으로 변경을 검토합니다.
 3. 인수 조건을 실제 명령으로 실행하고 `Failed` 여부를 확인합니다.
 4. 실패 항목을 수정한 뒤 다시 리뷰합니다.
-5. 완료 조건을 만족하면 별도의 최종 게이트가 독립적으로 재검증합니다.
+5. 완료 후보를 고정하고, 별도의 신규 블라인드 게이트가 구현 후 새로운 holdout probe를 생성해 검증합니다.
+
+### 엄격한 블라인드 모드 *(기본값)*
+
+개발자는 명세와 기본 인수 조건을 받지만 리뷰 보고서, 리뷰 체크리스트,
+게이트 계획, holdout probe, 리뷰어의 추론은 받지 않습니다. 매 반복 리뷰어와
+최종 게이트는 서로 다른 신규 서브에이전트이며, 저장소·고정된 대상·확정 명세·
+범위 경계·위험 초점만 전달받습니다. ledger와 이전 기록은 controller만 관리합니다.
+
+최종 게이트는 완료 후보가 고정된 뒤 경계값·비정상 입력, 상태 순서, 실패 주입,
+property/metamorphic·차등 동작, 테스트 강도와 같은 후기 생성 probe를 만듭니다.
+대상 작업 트리는 수정할 수 없습니다. 실행 환경이 깨끗한 신규 서브에이전트를
+지원하지 않으면 루프를 중단하고, 해당 실행에 한해서만 독립성 완화를 승인할지
+묻습니다. 완화 모드는 저장되지 않으며 이전 승인도 재사용하지 않습니다.
 
 ### 3. 종료와 결과 확인
 
@@ -89,7 +102,7 @@ $run-review-loop docs/fleet-fuel-spec.md 기준으로 연료 합계 API를 구�
 
 - 명세의 실행 가능한 인수 조건이 모두 통과
 - 리뷰 판정이 `Pass` 또는 `Pass with warnings`
-- 독립 최종 게이트에서 새로운 `Failed`가 발견되지 않음
+- 고정 snapshot이 바뀌지 않고 후기 생성 probe가 모두 통과하며 게이트에서 새로운 `Failed`가 발견되지 않음
 
 안전장치로 최대 3회까지만 반복하며, 실패 항목이 줄지 않거나 되살아나는 경우 사용자에게 판단을 요청합니다. `Warning`만 남은 경우에는 루프를 계속 돌리지 않고 각각 수용·이슈 등록·즉시 정리 중 하나로 처리합니다.
 
@@ -99,7 +112,7 @@ $run-review-loop docs/fleet-fuel-spec.md 기준으로 연료 합계 API를 구�
 
 ### 현재 변경만 리뷰
 
-다음처럼 자연어로 요청하거나 `$agent-work-review`를 직접 호출합니다.
+다음처럼 자연어로 요청하거나 `$veriloop`를 직접 호출합니다.
 
 - “에이전트가 방금 만든 변경을 리뷰해줘”
 - “커밋 전에 현재 diff를 확인해줘”
@@ -182,7 +195,7 @@ skills/
 ├── initialize-review-loop/       # 역할별 모델과 ledger 초기화
 ├── draft-spec/                   # 저장소 분석 → 명세 초안 → 사용자 확인
 ├── run-review-loop/              # 구현 → 리뷰 → 수정 → 최종 게이트
-├── agent-work-review/            # 다섯 관점의 독립 리뷰
+├── veriloop/                     # 다섯 관점의 독립 블라인드 리뷰
 ├── apply-review-findings/        # 검증된 지적사항 수정
 └── loop-dashboard/               # 실행 기록 HTML 시각화
 ```

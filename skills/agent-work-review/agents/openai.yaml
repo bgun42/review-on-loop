@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agent Work Review"
-  short_description: "Review code changes across five risk passes"
-  default_prompt: "Use $agent-work-review to review the current diff against its confirmed specification."

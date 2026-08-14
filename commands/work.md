@@ -114,6 +114,20 @@ If no config exists, run everything on the session model and mention that
 `/init` enables per-role model routing (e.g., a stronger model on the
 reviewer/gate while develop/fix stay on a cheaper tier).
 
+## Strict blind mode (default)
+
+Treat a missing `blind_mode` as `strict`. Before development, verify that the Task/Agent
+tool can create a unique subagent for every reviewer and gate without inheriting the
+controller, developer, fixer, or prior-review conversation.
+
+If clean contexts are unavailable, stop before changing code and ask whether the user
+authorizes reduced independence for **this run only**. Never reuse an earlier approval
+or save relaxed mode in config. If approved, keep the review verdict vocabulary
+unchanged, label affected reviews and gates `independence: reduced` in the controller
+record, and record the reason and approval in `run.json`. If declined
+or unanswered, exit with `blind_context_unavailable`. Never call inline review blind
+or independent.
+
 ## The loop (max 3 iterations)
 
 ### 1. Develop
@@ -122,14 +136,21 @@ If the working tree already contains the change to evaluate, skip this step. Oth
 implement toward the goal, respecting the scope bounds and this repository's
 conventions (its CLAUDE.md, linter configs, and sibling code — the same baseline the
 review will judge against).
+Give the developer the specification and acceptance checks, but not review reports,
+the review checklist, gate plans, holdout probes, or reviewer reasoning.
 
-### 2. Review — fresh context, always
+### 2. Review — unique blind context, always
 
-Run the `agent-work-review` skill in a **fresh subagent** (Task/Agent tool), never
-inline in your own context. Why: you (or your develop step) wrote this code; a reviewer
-sharing the author's context inherits the author's blind spots, and the loop's value
-collapses. Give the subagent only the repo path and the review request; take back the
-report and its machine-readable JSON block (`verdict`, `findings`).
+Create a new subagent for this iteration and run the `veriloop` skill. Never reuse a
+reviewer from an earlier iteration or gate. Give it only the strict-blind invocation
+marker, repo path, frozen review target, confirmed specification, scope bounds, and
+risk focus.
+
+Do not send developer/fixer reasoning, prior reports, ledger contents, accepted
+warnings, acceptance results, or gate probes. Tell it not to read `.agent-review/`.
+If forbidden history contaminates the brief, discard the review and start a clean
+reviewer; if that is impossible, return to the strict-mode preflight. Reconcile the
+report with the controller-owned ledger only after the blind review returns.
 
 ### 3. Check stop conditions — in this order
 
@@ -145,17 +166,56 @@ report and its machine-readable JSON block (`verdict`, `findings`).
    → **Stop.** Escalate: the loop is oscillating and human judgment is needed.
    Continuing would burn cost re-litigating the same code.
 
-### Final gate — pay for confidence only at the end
+### Final gate — blind, late-bound verification
 
-Success is declared once per loop, so that one declaration deserves independent
-confirmation: spawn **one additional fresh reviewer** with a narrowed brief — the
-lens with the highest remaining risk for this change: the spec's **Risk focus**
-section names it when present; otherwise judge (usually regression & data-contracts,
-or cost for query-heavy diffs) — on the strongest available model.
-The gate holds if it raises no new Failed finding. If it does, the ledger gets the
-finding and the loop continues (this consumes an iteration). For high-risk changes or
-when the user asked for thoroughness, widen the gate to a 2–3 lens panel; per
-iteration reviews stay cheap — only the exit is expensive.
+Freeze the success candidate by recording the commit plus a digest of the working-tree
+diff. Spawn one additional gate subagent that is new to the run. Give it only the repo
+path, frozen target, confirmed specification, scope bounds, risk focus, and snapshot
+identifier. Do not reveal review verdicts, acceptance results, findings, ledger,
+developer explanations, or previous gate probes.
+
+The gate inspects the frozen implementation first, then creates holdout probes that
+were absent from the developer brief:
+
+- Executable code: at least two safe probes from different categories — boundary or
+  invalid inputs, state ordering, failure injection, property/metamorphic behavior,
+  differential behavior, or test-strength/mutation checks.
+- Documentation or non-executable configuration: at least one independent observable
+  assertion.
+- At least one probe covers in-spec behavior not identical to a named acceptance
+  check.
+
+Prefer non-mutating commands. Temporary tests must run in an isolated temporary
+workspace and must not edit the target worktree. An unevaluable probe is blocked, not
+passed. The gate never fixes code.
+
+The gate holds only when the snapshot is unchanged, every probe passes, and no new
+Failed finding exists. Require snapshot, probe category, command/assertion, evidence,
+and new findings in its report.
+
+Require this final machine-readable gate block:
+
+```json
+{
+  "gate": "hold | fail | blocked",
+  "snapshot": "commit-and-diff identifier",
+  "independence": "strict | reduced",
+  "probes": [
+    {
+      "category": "boundary | state | failure | property | differential | mutation | assertion",
+      "check": "command or observable assertion",
+      "result": "pass | fail | blocked",
+      "evidence": "captured output"
+    }
+  ],
+  "findings": []
+}
+```
+
+On failure, add the finding to the controller-owned ledger and give the fixer only
+the failed invariant plus minimal reproducible evidence. Withhold passed probes and
+the rest of the gate reasoning. After fixing and blind review, spawn an entirely new
+gate that generates new probes. Continue within the same three-iteration limit.
 
 Warning-only findings never keep the loop running — if the only reason you would
 iterate again is warnings, that is success condition territory, not another cycle.
@@ -168,23 +228,27 @@ finding's evidence and reported as **Pass**. A fix that touches the spec's Risk
 focus area gets the strongest verification available — run the covering tests, not
 only the finding's own evidence. Then return to step 2.
 
+For a gate failure, pass only the minimal failure packet above, not the full gate
+report or any passed holdout probes.
+
 ## Archive the run
 
 Review reports and iteration history exist only in the conversation and evaporate
 with it. When the loop ends (any exit path), write them down: create
 `.agent-review/runs/<NNN>/` (next number) containing each iteration's review report
-(prose + JSON block) and a small `run.json` (goal, spec path, per-iteration verdict
-and Failed/Warning counts, exit reason). The next cycle's reviewer reads the latest
-run as prior context, and the `loop-dashboard` skill renders from it when the
-conversation no longer holds the history. The ledger stays the cross-run index — the
-archive is the detail behind it. Specs live in the repo's docs and are already
+(prose + JSON block) and a `run.json` containing goal, spec path, per-iteration
+verdict and counts, acceptance results, blind mode, any authorized relaxation, gate
+snapshot, holdout evidence, and exit reason. Write the archive only after exit; active
+reviewers and gates never read it. The `loop-dashboard` skill renders the archive,
+while the ledger stays the cross-run index. Specs live in the repo's docs and are already
 versioned by git; do not duplicate them here.
 
 ## Final report
 
 Whatever the exit path, tell the user:
 
-- **Exit reason**: goal met (gate held) / iteration cap / no progress.
+- **Exit reason**: goal met (gate held) / iteration cap / no progress / blind context
+  unavailable.
 - **Goal verification**: each acceptance criterion with the check that was run, its
   result (**Pass** / Fail), and evidence.
 - **Loop history**: per iteration — verdict, Failed/Warning counts, and each resolved

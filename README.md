@@ -10,27 +10,27 @@ It checks agent-written changes from five perspectives, then repeats for up to t
 
 ```mermaid
 flowchart TD
-    Init["Initialize (optional)<br/>initialize-review-loop · /init"] --> State["Model routing<br/>.agent-review/config.json"]
+    Init["Initialize (optional)<br/>initialize-review-loop · /init"] --> State["Strict blind mode + model routing<br/>.agent-review/config.json"]
     Draft["Confirm specification<br/>draft-spec · /draft"] --> Spec["Confirmed specification<br/>Executable acceptance checks"]
     State --> Run["Run the loop<br/>run-review-loop · /work"]
     Spec --> Run
     Run --> Develop["1. Develop"]
-    Develop --> Review["2. Independent review<br/>agent-work-review"]
+    Develop --> Review["2. New blind reviewer<br/>veriloop"]
     Review --> Decision{"Acceptance checks pass<br/>and no Failed?"}
     Decision -- "No" --> Fix["3. Apply findings<br/>apply-review-findings"]
     Fix --> Review
-    Decision -- "Yes" --> Gate["4. Independent final gate"]
+    Decision -- "Yes" --> Gate["4. New blind gate<br/>late-bound holdout probes"]
     Gate -- "New Failed" --> Fix
     Gate -- "Pass" --> Archive["5. Archive the run<br/>loop-dashboard"]
 ```
 
-`agent-work-review` also works on its own. If there is no confirmed specification, it routes to `draft-spec` first instead of approving spec-less work by guesswork.
+`veriloop` also works on its own. If there is no confirmed specification, it routes to `draft-spec` first instead of approving spec-less work by guesswork.
 
 ## Recommended workflow
 
 | Step | Codex | Claude Code | Output |
 |---|---|---|---|
-| 0. Configure role models *(optional)* | `$initialize-review-loop` | `/init` | `.agent-review/config.json` and findings ledger |
+| 0. Configure role models *(optional)* | `$initialize-review-loop` | `/init` | Strict blind mode, model routing, and findings ledger |
 | 1. Confirm the work specification | `$draft-spec` | `/draft` | A repository-grounded spec with executable acceptance checks |
 | 2. Develop, review, and repair | `$run-review-loop <goal>` | `/work <goal>` | Verified changes and a final verdict |
 | 3. Inspect the completed run | `$loop-dashboard` or a natural-language request | Natural-language request | An offline HTML dashboard |
@@ -47,7 +47,7 @@ $initialize-review-loop
 /init
 ```
 
-The selection is stored in `.agent-review/config.json`. If a configured model is unavailable, the loop stops instead of silently substituting another one.
+The selection and `"blind_mode": "strict"` are stored in `.agent-review/config.json`. If a configured model is unavailable, the loop stops instead of silently substituting another one.
 
 ### 1. Draft and confirm the specification
 
@@ -78,10 +78,25 @@ $run-review-loop implement the fuel-total API per docs/fleet-fuel-spec.md while 
 Each iteration follows the same sequence:
 
 1. Implement the specification, unless the target diff already exists.
-2. Review the change in a fresh context across five focused passes.
+2. Create a unique blind reviewer and run `veriloop` across five focused passes.
 3. Run the acceptance checks and inspect the review for `Failed` findings.
 4. Repair verified failures, then review again.
-5. When the completion conditions hold, run a separate independent final gate.
+5. Freeze the candidate, then create a different blind gate that generates new holdout probes after implementation.
+
+### Strict blind mode *(default)*
+
+Developers receive the specification and basic acceptance checks, but not review
+reports, the review checklist, gate plans, holdout probes, or reviewer reasoning.
+Every iteration reviewer and final gate is a new subagent. Each receives only the
+repository, frozen target, confirmed specification, scope bounds, and risk focus;
+the controller keeps the ledger and all prior history.
+
+The final gate creates late-bound probes after the candidate is frozen: boundary and
+invalid inputs, state ordering, failure injection, property/metamorphic or
+differential behavior, and test-strength checks. It cannot modify the target
+worktree. If the host cannot provide a clean subagent context, the loop stops and
+asks whether you authorize reduced independence for that run only. Relaxed mode is
+never persisted or inferred from an earlier approval.
 
 ### 3. Stop and inspect the result
 
@@ -89,7 +104,7 @@ The loop succeeds only when all of these conditions hold:
 
 - Every executable acceptance check in the specification passes.
 - The review verdict is `Pass` or `Pass with warnings`.
-- The independent final gate finds no new `Failed` item.
+- The frozen snapshot is unchanged, every late-bound gate probe passes, and the gate finds no new `Failed` item.
 
 The loop is capped at three iterations. If failures stop decreasing or recur, it escalates the decision to you. Warnings do not keep the loop running; each remaining warning is explicitly accepted, filed as follow-up work, or fixed now.
 
@@ -99,7 +114,7 @@ Completed runs are archived under `.agent-review/runs/`. `loop-dashboard` turns 
 
 ### Review the current change
 
-Ask naturally or invoke `$agent-work-review` directly:
+Ask naturally or invoke `$veriloop` directly:
 
 - “Review what the agent just changed.”
 - “Check this diff before I commit.”
@@ -182,7 +197,7 @@ skills/
 ├── initialize-review-loop/       # Role-model routing and ledger setup
 ├── draft-spec/                   # Repository analysis → draft → confirmation
 ├── run-review-loop/              # Develop → review → repair → final gate
-├── agent-work-review/            # Independent five-pass review
+├── veriloop/                     # Independent five-pass blind review
 ├── apply-review-findings/        # Repair verified findings
 └── loop-dashboard/               # Render run history as offline HTML
 ```

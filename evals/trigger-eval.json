@@ -14,7 +14,7 @@
   {"query": "어제 에이전트한테 시킨 작업 결과물 리뷰하고 문제 있으면 정리해줘", "should_trigger": true},
   {"query": "이 변경은 명세서가 따로 없긴 한데 일단 리뷰해줘", "should_trigger": true},
   {"query": "다음 스프린트에 할 작업 명세서 초안 좀 작성해줘", "should_trigger": false},
-  {"query": "우리 agent-work-review 스킬의 SKILL.md 문구 좀 다듬어줘", "should_trigger": false},
+  {"query": "우리 veriloop 스킬의 SKILL.md 문구 좀 다듬어줘", "should_trigger": false},
   {"query": "write a code review checklist document for our team wiki", "should_trigger": false},
   {"query": "gh cli로 PR에 리뷰 코멘트 다는 방법 알려줘", "should_trigger": false},
   {"query": "에이전트가 작성한 회의록 요약본 검토해줘. 빠진 안건 없는지", "should_trigger": false},

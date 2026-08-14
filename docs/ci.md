@@ -1,6 +1,6 @@
 # CI and hook integration
 
-Every `agent-work-review` report ends with a machine-readable JSON block
+Every `veriloop` report ends with a machine-readable JSON block
 (`verdict`, `findings[]`). That block is the integration surface: any CI job that can
 run Codex or Claude Code headlessly can gate on it.
 
@@ -23,7 +23,7 @@ Install and invoke the Codex version with:
         run: |
           codex exec --approve-for-me --ephemeral \
             --output-last-message review.json \
-            'Use $agent-work-review to review this branch against origin/${{ github.base_ref }}. Output only the machine-readable JSON block.'
+            'Use $veriloop to review this branch against origin/${{ github.base_ref }}. Output only the machine-readable JSON block.'
 ```
 
 Use the shared “Gate on verdict” and “Comment findings” steps below after this runner.
@@ -54,7 +54,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude -p "Use the agent-work-review skill to review this branch against origin/${{ github.base_ref }}. Output only the machine-readable JSON block." \
+          claude -p "Use the veriloop skill to review this branch against origin/${{ github.base_ref }}. Output only the machine-readable JSON block." \
             --output-format text > review.json
 
       - name: Gate on verdict
@@ -92,7 +92,7 @@ shipped by this plugin — hooks execute on the user's machine and belong to the
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "If code files were modified this session and no agent-work-review ran on those changes, run the agent-work-review skill now. If its verdict is fail, do not stop — apply the review findings first."
+            "prompt": "If code files were modified this session and no veriloop review ran on those changes, run the veriloop skill now. If its verdict is fail, do not stop — apply the review findings first."
           }
         ]
       }
