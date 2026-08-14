@@ -23,7 +23,7 @@ explicitly as passed, and once a finding is fixed it is reported as **Pass**.
 ## Install
 
 ```
-/plugin marketplace add <owner>/review-on-loop
+/plugin marketplace add bgun42/review-on-loop
 /plugin install agent-work-review@review-on-loop
 ```
 

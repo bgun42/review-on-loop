@@ -14,7 +14,7 @@
       "description": "A single-skill plugin that reviews agent-produced diffs across five dimensions: regression, performance, cloud cost (Cosmos DB and other metered services), readability, and repo-convention adherence.",
       "version": "0.5.1",
       "author": {
-        "name": "lab021adm"
+        "name": "bgun42"
       },
       "keywords": [
         "code-review",

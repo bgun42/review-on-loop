@@ -23,7 +23,7 @@ verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 �
 ## 설치
 
 ```
-/plugin marketplace add <owner>/review-on-loop
+/plugin marketplace add bgun42/review-on-loop
 /plugin install agent-work-review@review-on-loop
 ```
 
