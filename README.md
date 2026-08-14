@@ -1,10 +1,6 @@
 <p align="center">
-  <a href="./README.md">
-    <img src="https://img.shields.io/badge/English-30363D?style=for-the-badge" alt="Read in English" />
-  </a>
-  <a href="./README.ko.md">
-    <img src="https://img.shields.io/badge/한국어-30363D?style=for-the-badge" alt="한국어로 읽기" />
-  </a>
+  <a href="./README.md"><img src="https://img.shields.io/badge/English-30363D?style=for-the-badge" alt="Read in English" /></a>
+  <a href="./README.ko.md"><img src="https://img.shields.io/badge/한국어-30363D?style=for-the-badge" alt="한국어로 읽기" /></a>
 </p>
 
 # Veriloop
@@ -14,13 +10,9 @@ A **spec-grounded code review and repair loop** for Codex and Claude Code.
 It checks agent-written changes from five perspectives, then repeats for up to three iterations until no failed finding remains and the goal's acceptance checks pass as executable commands.
 
 <p align="center">
-  <a href="#install">
-    <img src="https://img.shields.io/badge/▶_INSTALL-OPEN-111111?style=for-the-badge&labelColor=5B5B5B" alt="Install Veriloop" />
-  </a>
+  <a href="#install"><img src="https://img.shields.io/badge/▶_INSTALL-OPEN-111111?style=for-the-badge&labelColor=5B5B5B" alt="Install Veriloop" /></a>
   &nbsp;&nbsp;
-  <a href="#recommended-workflow">
-    <img src="https://img.shields.io/badge/▶_WORKFLOW-EXPLORE-8B5CF6?style=for-the-badge&labelColor=5B5B5B" alt="Explore the Veriloop workflow" />
-  </a>
+  <a href="#recommended-workflow"><img src="https://img.shields.io/badge/▶_WORKFLOW-EXPLORE-8B5CF6?style=for-the-badge&labelColor=5B5B5B" alt="Explore the Veriloop workflow" /></a>
 </p>
 
 <p align="center">
@@ -28,15 +20,12 @@ It checks agent-written changes from five perspectives, then repeats for up to t
   <kbd>review passes 5</kbd>
   <kbd>platforms Codex + Claude</kbd>
   <kbd>blind mode strict</kbd>
-  <a href="https://github.com/dev-geon/veriloop/stargazers">
-    <img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat-square&color=30363D&labelColor=30363D" alt="GitHub stars" />
-  </a>
-  <a href="https://github.com/dev-geon/veriloop/releases/latest">
-    <img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat-square&color=30363D&labelColor=30363D" alt="Latest release" />
-  </a>
-  <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat-square&color=30363D&labelColor=30363D" alt="MIT license" />
-  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/dev-geon/veriloop/stargazers"><img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/dev-geon/veriloop/releases/latest"><img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat" alt="Latest release" /></a>
+  <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat" alt="MIT license" /></a>
 </p>
 
 ## Skill architecture
