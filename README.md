@@ -10,16 +10,16 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/dev-geon/veriloop/stargazers"><img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/dev-geon/veriloop/releases/latest"><img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat" alt="Latest release" /></a>
+  <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat" alt="MIT license" /></a>
+</p>
+
+<p align="center">
   <kbd>skills 6</kbd>
   <kbd>review passes 5</kbd>
   <kbd>platforms Codex + Claude</kbd>
   <kbd>blind mode strict</kbd>
-</p>
-
-<p align="center">
-  <a href="https://github.com/dev-geon/veriloop/stargazers"><img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat" alt="GitHub stars" /></a>
-  <a href="https://github.com/dev-geon/veriloop/releases/latest"><img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat" alt="Latest release" /></a>
-  <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat" alt="MIT license" /></a>
 </p>
 
 # Veriloop
