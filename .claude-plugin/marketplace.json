@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Review code changes produced by AI agents before they land: regression risk, performance defects, cloud-cost defects, readability, and convention adherence.",
-    "version": "0.5.1"
+    "version": "0.6.0"
   },
   "plugins": [
     {
       "name": "agent-work-review",
       "source": "./",
-      "description": "A single-skill plugin that reviews agent-produced diffs across five dimensions: regression, performance, cloud cost (Cosmos DB and other metered services), readability, and repo-convention adherence.",
-      "version": "0.5.1",
+      "description": "Reviews agent-produced diffs across five dimensions — regression, performance, cloud cost (Cosmos DB and other metered services), readability, repo-convention adherence — spec-gated: work without a written specification is first specified via the bundled draft-spec skill (codebase analysis → goal analysis → confirmed spec), then reviewed.",
+      "version": "0.6.0",
       "author": {
         "name": "bgun42"
       },

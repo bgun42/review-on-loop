@@ -1,7 +1,7 @@
 {
   "name": "agent-work-review",
-  "version": "0.5.1",
-  "description": "Review code changes produced by AI agents before they land — regression risk, performance defects, cloud-cost defects (Cosmos DB and other metered services), readability, repo-convention adherence — plus a goal-driven develop→review→fix loop (/review-loop) and a findings-applier skill.",
+  "version": "0.6.0",
+  "description": "Review code changes produced by AI agents before they land — regression risk, performance defects, cloud-cost defects (Cosmos DB and other metered services), readability, repo-convention adherence — plus a goal-driven develop→review→fix loop (/work), a spec-drafting command (/draft) that writes the missing specification from codebase + goal analysis, and a findings-applier skill.",
   "author": {
     "name": "bgun42"
   },

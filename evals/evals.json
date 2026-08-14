@@ -3,21 +3,33 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "An AI agent just finished refactoring the report service in this repo (the changes are uncommitted in the working tree). Review the agent's work before I commit it.",
-      "expected_output": "A structured review report that catches the seeded defects: a cross-partition Cosmos query (cost), an N+1 query loop (performance), a renamed method with a stale caller (regression), and a convention violation (layering/error-handling divergence). Findings are ranked by severity with file:line evidence and a final verdict.",
-      "files": ["fixture repo (seeded defects)"]
+      "prompt": "An AI agent just finished reworking the report service in this repo (the changes are uncommitted). The work implements docs/spec.md. Review it before I commit.",
+      "expected_output": "Step 0 reads docs/spec.md as ground truth, then the five passes run and catch the seeded defects: a stale caller of the renamed function (regression) and a per-ship query loop the spec forbids (performance/cost). Verdict Fail, file:line evidence, machine-readable JSON block matching the prose.",
+      "files": ["fixture repo: spec present + seeded defects"]
     },
     {
       "id": 2,
       "prompt": "에이전트가 방금 이 레포에서 리팩토링 작업을 끝냈어 (아직 커밋 전이야). 커밋해도 될지 리뷰해줘.",
-      "expected_output": "Korean-language review report following the same template, reviewing the uncommitted working tree, catching seeded defects, with a verdict.",
-      "files": ["fixture repo (seeded defects)"]
+      "expected_output": "No spec exists, so the spec gate holds: NO verdict is issued and the diff is not judged. The skill says plainly that spec-less work is not reviewed and switches to the draft-spec flow (codebase analysis, then load-bearing questions for the user). Output in Korean.",
+      "files": ["fixture repo: no spec, seeded defects"]
     },
     {
       "id": 3,
-      "prompt": "The agent made a small change to the date formatting helper (uncommitted). Can you check it's safe to commit?",
-      "expected_output": "A clean-diff review: no fabricated findings, explicit 'Passed checks' section per pass, verdict Pass. Tests the false-positive rate.",
-      "files": ["fixture repo (clean change)"]
+      "prompt": "The agent made a small change to the date formatting helper (uncommitted), implementing docs/spec.md. Can you check it's safe to commit?",
+      "expected_output": "Clean-diff review against the spec: no fabricated findings, explicit Passed-checks section per pass, verdict Pass. Tests the false-positive rate under the spec gate.",
+      "files": ["fixture repo: spec present + clean change"]
+    },
+    {
+      "id": 4,
+      "prompt": "/work fleet fuel-total endpoint works; existing callers unbroken; tests pass",
+      "expected_output": "Goal-contract item 0 requires a written specification: none exists, so the loop does NOT start (no develop, no review). The controller hands off to draft-spec and states the loop starts only after the user confirms the spec.",
+      "files": ["fixture repo: no spec"]
+    },
+    {
+      "id": 5,
+      "prompt": "/draft rename getFuelTotal and batch the per-ship queries in the report service",
+      "expected_output": "Analyzes the codebase first (conventions, callers, current behavior with file:line), enumerates the load-bearing decision surface via the four lenses, asks batched questions (≤4, recommendation first) instead of silently defaulting (e.g. missing-ship behavior, batching strategy), drafts a spec with executable acceptance criteria and a single Risk focus, and runs the independent guess-hunt before asking for confirmation.",
+      "files": ["fixture repo: no spec"]
     }
   ]
 }

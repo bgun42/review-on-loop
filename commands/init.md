@@ -3,10 +3,10 @@ description: Initialize agent-work-review for this repository — per-role model
 argument-hint: [optional role=model pairs, e.g. "reviewer=opus developer=sonnet"]
 ---
 
-# Review Init
+# Init
 
 Set up `.agent-review/` in the current repository so the review skills and the
-`/review-loop` command run with the user's own choices — especially which model each
+`/work` command run with the user's own choices — especially which model each
 loop role uses. Nothing here is mandatory: every skill in this plugin works without
 initialization, on the session model. Init exists so the user can be deliberate.
 

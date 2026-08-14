@@ -10,7 +10,11 @@ description: >
   훑어보기. The review covers regression risk, performance, cloud cost (metered
   services like Cosmos DB, DynamoDB, LLM APIs), readability, and this repo's own
   conventions — trigger even when the user asks about only one of these for recent
-  changes (e.g. only regressions, only convention violations, only cost). Do NOT use
+  changes (e.g. only regressions, only convention violations, only cost). The review
+  is grounded in the change's written specification (requirements/design doc, ticket
+  with acceptance detail, API contract); when none exists, the skill routes to the
+  bundled draft-spec skill to get one written and confirmed first instead of
+  reviewing. Do NOT use
   for reviewing documents or design proposals, applying findings from a previous
   review, writing review checklists or process docs, or discussing review culture —
   only for actually reviewing concrete code changes.
@@ -32,6 +36,24 @@ plausible-looking code fast, but they tend to make a specific family of mistakes
 Your job is to catch these before the change lands. Work through the five passes below
 in order. Report only what you have verified against the actual code — a review full of
 speculative findings trains the reader to ignore it.
+
+## Step 0 — Specification gate
+
+A diff can only be judged against its intended behavior, and intent lives in a written
+specification — a requirements/design document, an ADR, a ticket with concrete
+acceptance detail, an API contract. Establish it before touching the code:
+
+- Identify the spec this change implements: the document the user, branch, PR, or
+  ticket references, the goal contract of a running `/work`, or a doc the user
+  points you to when asked.
+- Read it and carry it through every pass: the regression pass checks the change
+  against what the spec promises, and the verdict answers "does this do what the spec
+  says" — not merely "does this look clean".
+- **If no specification exists, do not run the review.** A review without a spec can
+  only judge taste, not correctness. Say that plainly and switch to the bundled
+  `draft-spec` skill: it analyzes the codebase (house rules, conventions, workflow)
+  and the change itself, then drafts the spec for the user to correct and confirm.
+  Run the review only once the confirmed spec exists.
 
 ## Step 1 — Scope the diff
 
@@ -69,7 +91,9 @@ repository doesn't actually have.
 
 If `.agent-review/baseline.md` exists in the repo, start from it (a cached baseline
 from a previous review) and spot-check it against current code before trusting it —
-see `references/conventions.md` for the cache rules.
+see `references/conventions.md` for the cache rules. If `.agent-review/runs/` exists,
+read the latest run's report too — the previous cycle's findings are context for what
+to re-check.
 
 ## Step 3 — The five review passes
 
@@ -172,7 +196,7 @@ Rules for the report:
 ### Machine-readable result block
 
 End every report with this fenced JSON block. It is the contract that lets automation —
-the `review-loop` command, the `apply-review-findings` skill, CI scripts — consume the
+the `/work` command, the `apply-review-findings` skill, CI scripts — consume the
 review without parsing prose. Keep the prose report as the source of truth for humans;
 this block only mirrors it.
 

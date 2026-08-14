@@ -41,16 +41,33 @@ It reviews, in order of precedence: the target you name (PR / commit range / pat
 uncommitted working-tree changes → the current branch against its merge base with the
 default branch. Reports are written in whatever language you're conversing in.
 
-## Loop engineering: `/review-loop`
+The review is **spec-grounded**: it first identifies the written specification the
+change implements (requirements/design doc, ticket with acceptance detail, API
+contract) and judges the change against it. If no spec exists, the bundled
+`draft-spec` skill takes over first (also invocable directly as `/draft`): it
+analyzes the codebase (house rules,
+conventions, workflow, the code the goal touches), interprets your goal against that
+reality, and drafts the spec — with executable acceptance criteria — for you to
+correct and confirm. Before confirmation an independent guess-hunt reviewer audits
+the draft, hunting decisions that were assumed rather than grounded in you.
+Spec-less work is not reviewed.
+
+## Loop engineering: `/work`
 
 The plugin also ships a goal-driven develop → review → fix loop:
 
 ```
-/review-loop fleet fuel-total endpoint works per house rules; existing data and callers unbroken
+/work per docs/fleet-fuel-spec.md: fleet fuel-total endpoint works per house rules; existing data and callers unbroken
 ```
+
+Recommended flow: **`/init`** (once per repo) → **`/draft`** (confirmed spec) →
+**`/work`** (the loop, citing that spec).
 
 - The loop **refuses to start without an explicit goal** — you state the goal and
   verifiable acceptance criteria up front (it asks if they're missing).
+- It also **refuses to start without a specification** — the goal contract must cite
+  the written spec the work implements; if none exists, the loop hands off to
+  `draft-spec` to write it and only starts once you confirm it.
 - Each iteration: develop (skipped if the diff already exists) → fresh-context review
   (`agent-work-review`) → stop-condition check → fix (`apply-review-findings`).
 - **It stops when your goal's acceptance criteria verify AND the review verdict is
@@ -61,8 +78,10 @@ The plugin also ships a goal-driven develop → review → fix loop:
   judgment call. A **findings ledger** (`.agent-review/ledger.json`) tracks every
   finding across iterations (Pass / open / recurred / accepted), a **final gate**
   reviewer independently confirms success before the loop exits, and remaining
-  warnings get an explicit disposition (accept / file issue / clean up now).
-- **Model routing, user-owned**: run `/review-init` once per repo to choose which
+  warnings get an explicit disposition (accept / file issue / clean up now). Each
+  finished run is archived under `.agent-review/runs/` for the next cycle and the
+  dashboard.
+- **Model routing, user-owned**: run `/init` once per repo to choose which
   model each loop role uses (`developer` / `fixer` / `reviewer` / `gate`, written to
   `.agent-review/config.json`). The loop follows your configuration exactly; the only
   intervention is a one-time warning if the reviewer/gate is set weaker than the
@@ -90,8 +109,9 @@ CDN dependencies, so it ships with the plugin and works offline).
 
 ```
 commands/
-├── review-init.md            # per-repo setup: role→model config, ledger scaffolding
-└── review-loop.md            # goal-driven develop→review→fix loop controller
+├── init.md                   # per-repo setup: role→model config, ledger scaffolding
+├── draft.md                  # fronts draft-spec: codebase + goal analysis → confirmed spec
+└── work.md                   # goal-driven develop→review→fix loop controller
 skills/
 ├── agent-work-review/
 │   ├── SKILL.md              # the five-pass review workflow (+ machine-readable result block)
@@ -102,6 +122,8 @@ skills/
 │       ├── readability.md        # agent-specific code smells
 │       ├── conventions.md        # discovering and enforcing repo precedent
 │       └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
+├── draft-spec/
+│   └── SKILL.md              # writes the missing spec: codebase analysis → goal analysis → confirmed draft
 ├── apply-review-findings/
 │   └── SKILL.md              # fixes Failed findings from a review report, reports them as Pass
 └── loop-dashboard/

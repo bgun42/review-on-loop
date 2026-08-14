@@ -1,13 +1,23 @@
 ---
 description: Drive a develop → review → fix loop that stops when the user's stated goal is met and the review verdict is Pass
-argument-hint: <goal and acceptance criteria, e.g. "fleet fuel-total endpoint works per house rules; existing data and callers unbroken; tests pass">
+argument-hint: <goal, acceptance criteria, and the spec it implements, e.g. "per docs/fleet-fuel-spec.md: endpoint works per house rules; existing data and callers unbroken; tests pass">
 ---
 
-# Review Loop
+# Work
 
 Run an iterative develop → review → fix cycle on this repository, terminating on an
 explicit, user-defined goal. You are the loop controller: you never review and never
 fix in your own context — you delegate those to the skills and judge the results.
+
+## Authority model
+
+The confirmed specification owns required behavior; the goal contract and the plan
+serve it, and existing code is a HOW reference — never the authority for WHAT. On any
+conflict — spec ↔ code, spec ↔ reviewer taste, spec ↔ the loop's own convenience — the
+spec wins, and a conflict only the user can resolve is escalated, never self-resolved.
+Never lean downstream: the developer and fixer verify their own work as if the review
+and the final gate did not exist. A gate finding is an upstream failure that escaped,
+not the gate doing its job.
 
 ## Step 0 — Goal contract (do not skip)
 
@@ -16,6 +26,17 @@ The loop's arguments are: $ARGUMENTS
 A loop without an explicit goal cannot terminate meaningfully — "make it better" loops
 forever. Before the first iteration, establish the **goal contract**:
 
+0. **Specification** — the written spec this work implements: a requirements or
+   design document in the repo, an ADR, a ticket with concrete acceptance detail, an
+   API contract. The goal contract must cite it, and the developer, reviewer, and
+   gate subagents all receive its path as ground truth. Development that references
+   no specification has no stable definition of "done" — the loop would converge on
+   the reviewer's taste instead of documented intent. **If no such document exists,
+   do not start the loop.** Run the bundled `draft-spec` skill instead: it analyzes
+   the target codebase first (house rules, conventions, workflow, the code the goal
+   touches), interprets the user's goal against that reality, and drafts the spec —
+   with executable acceptance criteria — for the user to correct. Writing the spec
+   becomes the current task; the loop starts only after the user confirms it.
 1. **Goal** — what finished looks like, in one or two sentences.
 2. **Acceptance criteria** — how goal attainment is *verified*. Make each criterion
    **executable**: pair it with the exact check you will run — a test command
@@ -32,11 +53,22 @@ forever. Before the first iteration, establish the **goal contract**:
    criterion — either sharpen it with the user or move it out of the goal contract.
    Success is then mechanical: run every check, all must hold. No model judgment in
    the termination decision.
+
+   A check passes only on captured evidence — the command's exit code or observed
+   output, shown in the report. **An unevaluable check is a fail, not a pass**: if
+   the assertion itself could not run (the build died before the tests, the grep
+   scanned an empty file set, the server never answered), diagnose and re-run —
+   never infer success from side effects.
+
+   When the spec declares a runnable service and the repository has a cheap way to
+   run it locally, include a **runtime-smoke** criterion — start it, make one health
+   request, expect a success response, stop it. A green build proves the code
+   compiles; only a smoke proves it boots.
 3. **Scope bounds** — what must NOT change (public API, storage format, other modules).
 
 If the arguments above already contain these, restate them and proceed. If they are
 missing or too vague to verify, **ask the user and wait** — do not start the loop on a
-guessed goal.
+guessed goal, and never on work that has no specification behind it.
 
 ## Findings ledger
 
@@ -66,7 +98,7 @@ recorded so they are not re-litigated in future runs.
 
 ## Model configuration (user-owned)
 
-Read `.agent-review/config.json` (written by `/review-init`; roles: `developer`,
+Read `.agent-review/config.json` (written by `/init`; roles: `developer`,
 `fixer`, `reviewer`, `gate`). When spawning each subagent, pass that role's model via
 the harness's model override where supported; `inherit`, a missing key, or a missing
 file all mean the session model. **The user's configuration is authoritative — never
@@ -79,7 +111,7 @@ converges on the judge's standards, so a weak judge caps what the loop can guara
 then proceed exactly as configured.
 
 If no config exists, run everything on the session model and mention that
-`/review-init` enables per-role model routing (e.g., a stronger model on the
+`/init` enables per-role model routing (e.g., a stronger model on the
 reviewer/gate while develop/fix stay on a cheaper tier).
 
 ## The loop (max 3 iterations)
@@ -117,8 +149,9 @@ report and its machine-readable JSON block (`verdict`, `findings`).
 
 Success is declared once per loop, so that one declaration deserves independent
 confirmation: spawn **one additional fresh reviewer** with a narrowed brief — the
-lens with the highest remaining risk for this change (usually regression &
-data-contracts, or cost for query-heavy diffs) — on the strongest available model.
+lens with the highest remaining risk for this change: the spec's **Risk focus**
+section names it when present; otherwise judge (usually regression & data-contracts,
+or cost for query-heavy diffs) — on the strongest available model.
 The gate holds if it raises no new Failed finding. If it does, the ledger gets the
 finding and the loop continues (this consumes an iteration). For high-risk changes or
 when the user asked for thoroughness, widen the gate to a 2–3 lens panel; per
@@ -131,7 +164,21 @@ iterate again is warnings, that is success condition territory, not another cycl
 
 Run the `apply-review-findings` skill on the review report: every Failed finding,
 Warnings only when trivially safe, minimal diffs, each fix verified against the
-finding's evidence and reported as **Pass**. Then return to step 2.
+finding's evidence and reported as **Pass**. A fix that touches the spec's Risk
+focus area gets the strongest verification available — run the covering tests, not
+only the finding's own evidence. Then return to step 2.
+
+## Archive the run
+
+Review reports and iteration history exist only in the conversation and evaporate
+with it. When the loop ends (any exit path), write them down: create
+`.agent-review/runs/<NNN>/` (next number) containing each iteration's review report
+(prose + JSON block) and a small `run.json` (goal, spec path, per-iteration verdict
+and Failed/Warning counts, exit reason). The next cycle's reviewer reads the latest
+run as prior context, and the `loop-dashboard` skill renders from it when the
+conversation no longer holds the history. The ledger stays the cross-run index — the
+archive is the detail behind it. Specs live in the repo's docs and are already
+versioned by git; do not duplicate them here.
 
 ## Final report
 
