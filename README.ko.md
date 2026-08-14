@@ -151,7 +151,7 @@ $loop-dashboard
 ### Codex
 
 ```bash
-codex plugin marketplace add bgun42/veriloop
+codex plugin marketplace add dev-geon/veriloop
 codex plugin add veriloop@veriloop
 ```
 
@@ -160,7 +160,7 @@ codex plugin add veriloop@veriloop
 ### Claude Code
 
 ```text
-/plugin marketplace add bgun42/veriloop
+/plugin marketplace add dev-geon/veriloop
 /plugin install veriloop@veriloop
 ```
 

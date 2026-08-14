@@ -153,7 +153,7 @@ Every finding is rechecked against the code and marked `Confirmed` or `Needs ver
 ### Codex
 
 ```bash
-codex plugin marketplace add bgun42/veriloop
+codex plugin marketplace add dev-geon/veriloop
 codex plugin add veriloop@veriloop
 ```
 
@@ -162,7 +162,7 @@ Start a new Codex task after installation so the bundled skills are discovered.
 ### Claude Code
 
 ```text
-/plugin marketplace add bgun42/veriloop
+/plugin marketplace add dev-geon/veriloop
 /plugin install veriloop@veriloop
 ```
 

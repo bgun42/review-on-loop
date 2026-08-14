@@ -14,7 +14,7 @@ Install and invoke the Codex version with:
       - name: Install Codex + plugin
         run: |
           npm install -g @openai/codex
-          codex plugin marketplace add bgun42/veriloop
+          codex plugin marketplace add dev-geon/veriloop
           codex plugin add veriloop@veriloop
 
       - name: Run review
@@ -47,7 +47,7 @@ jobs:
       - name: Install Claude Code + plugin
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude plugin marketplace add bgun42/veriloop
+          claude plugin marketplace add dev-geon/veriloop
           claude plugin install veriloop@veriloop
 
       - name: Run review

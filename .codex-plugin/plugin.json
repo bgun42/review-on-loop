@@ -6,8 +6,8 @@
     "name": "bgun42",
     "url": "https://github.com/bgun42"
   },
-  "homepage": "https://github.com/bgun42/veriloop",
-  "repository": "https://github.com/bgun42/veriloop",
+  "homepage": "https://github.com/dev-geon/veriloop",
+  "repository": "https://github.com/dev-geon/veriloop",
   "license": "MIT",
   "keywords": ["code-review", "agent", "regression", "performance", "cloud-cost"],
   "skills": "./skills/",
@@ -18,7 +18,7 @@
     "developerName": "bgun42",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Write", "Code review"],
-    "websiteURL": "https://github.com/bgun42/veriloop",
+    "websiteURL": "https://github.com/dev-geon/veriloop",
     "defaultPrompt": [
       "Review the current diff before I commit it.",
       "Draft a specification for this change before implementation.",
