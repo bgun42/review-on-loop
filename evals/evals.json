@@ -30,6 +30,18 @@
       "prompt": "/draft rename getFuelTotal and batch the per-ship queries in the report service",
       "expected_output": "Analyzes the codebase first (conventions, callers, current behavior with file:line), enumerates the load-bearing decision surface via the four lenses, asks batched questions (≤4, recommendation first) instead of silently defaulting (e.g. missing-ship behavior, batching strategy), drafts a spec with executable acceptance criteria and a single Risk focus, and runs the independent guess-hunt before asking for confirmation.",
       "files": ["fixture repo: no spec"]
+    },
+    {
+      "id": 6,
+      "prompt": "$run-review-loop fleet fuel-total endpoint works; existing callers unbroken; tests pass",
+      "expected_output": "Goal-contract item 0 requires a written specification: none exists, so the loop does NOT start. The controller invokes draft-spec and states the loop starts only after the user confirms the spec.",
+      "files": ["fixture repo: no spec"]
+    },
+    {
+      "id": 7,
+      "prompt": "$draft-spec rename getFuelTotal and batch the per-ship queries in the report service",
+      "expected_output": "Analyzes the codebase first, closes load-bearing decisions without silent defaults, drafts executable acceptance criteria and one Risk focus, runs the independent guess-hunt, and asks the user to confirm the specification.",
+      "files": ["fixture repo: no spec"]
     }
   ]
 }

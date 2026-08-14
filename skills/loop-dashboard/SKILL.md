@@ -1,14 +1,14 @@
 ---
 name: loop-dashboard
 description: >
-  Render a /work loop run (or any sequence of review iterations) as a single-file,
+  Render a run-review-loop run (or any sequence of review iterations) as a single-file,
   self-contained HTML dashboard: what caused each retry, what was fixed and now passes,
   Failed/Warning trend charts, and goal-verification results — readable at a glance.
-  Use whenever the user wants to visualize /work loop history, see loop results as a
-  dashboard, "루프 결과 대시보드로 보여줘", "리뷰 이력 시각화해줘", or after /work
+  Use whenever the user wants to visualize review-loop history, see loop results as a
+  dashboard, "루프 결과 대시보드로 보여줘", "리뷰 이력 시각화해줘", or after run-review-loop
   finishes and the user accepts the dashboard offer. Data comes from the
   conversation's loop history or, when that is gone, from the archived run under
-  `.agent-review/runs/<NNN>/`.
+  `.agent-review/runs/NNN/`.
 ---
 
 # Loop Dashboard
@@ -78,5 +78,5 @@ policies where CDN-based pages go blank.
 
 ## After writing the file
 
-Tell the user the absolute path (as a clickable `file://` link) and, when the
+Tell the user the absolute path as a clickable Markdown file link and, when the
 environment can, open or send the file so they see it immediately.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Initialize Review Loop"
+  short_description: "Configure review-loop roles and findings state"
+  default_prompt: "Use $initialize-review-loop to configure this repository for review loops."

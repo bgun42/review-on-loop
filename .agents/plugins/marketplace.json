@@ -1,0 +1,20 @@
+{
+  "name": "veriloop",
+  "interface": {
+    "displayName": "Veriloop"
+  },
+  "plugins": [
+    {
+      "name": "veriloop",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

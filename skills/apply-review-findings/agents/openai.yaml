@@ -1,0 +1,4 @@
+interface:
+  display_name: "Apply Review Findings"
+  short_description: "Fix verified review findings with minimal changes"
+  default_prompt: "Use $apply-review-findings to apply and verify the current review findings."

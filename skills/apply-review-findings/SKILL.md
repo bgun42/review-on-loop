@@ -7,7 +7,7 @@ description: >
   Use this skill whenever a review report exists (from the agent-work-review skill or
   any structured review) and the user asks to act on it — "apply the review findings",
   "fix what the review found", "리뷰 지적사항 반영해줘", "리뷰에서 나온 문제 고쳐줘" —
-  and as the fix step inside the /work command.
+  and as the fix step inside the run-review-loop skill.
 ---
 
 # Apply Review Findings
@@ -37,7 +37,7 @@ If there is no review report at all, say so and stop — running a review first 
   warnings produces new diffs for the next review to comment on and never terminates.
   Remaining warnings stay in the report for a human to accept or batch later.
 - **Warnings-only cleanup mode**: when explicitly invoked for it (e.g., the
-  /work loop's warning-debt disposition), fix ONLY warnings — skip any warning the
+  run-review-loop warning-debt disposition), fix ONLY warnings — skip any warning the
   ledger marks `accepted`, and still take the minimal-diff path.
 - If the repo has `.agent-review/ledger.json`, skip findings marked `accepted` and
   keep finding titles identical to the ledger's so statuses reconcile.

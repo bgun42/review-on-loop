@@ -1,13 +1,37 @@
 # CI and hook integration
 
 Every `agent-work-review` report ends with a machine-readable JSON block
-(`verdict`, `findings[]`). That block is the integration surface: anything that can
-run Claude Code headless can gate on it.
+(`verdict`, `findings[]`). That block is the integration surface: any CI job that can
+run Codex or Claude Code headlessly can gate on it.
 
 ## GitHub Actions — fail the check on a Fail verdict
 
+### Codex runner
+
+Install and invoke the Codex version with:
+
 ```yaml
-name: agent-work-review
+      - name: Install Codex + plugin
+        run: |
+          npm install -g @openai/codex
+          codex plugin marketplace add bgun42/veriloop
+          codex plugin add veriloop@veriloop
+
+      - name: Run review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          codex exec --approve-for-me --ephemeral \
+            --output-last-message review.json \
+            'Use $agent-work-review to review this branch against origin/${{ github.base_ref }}. Output only the machine-readable JSON block.'
+```
+
+Use the shared “Gate on verdict” and “Comment findings” steps below after this runner.
+
+### Claude Code runner
+
+```yaml
+name: Veriloop review
 on: [pull_request]
 
 jobs:
@@ -23,8 +47,8 @@ jobs:
       - name: Install Claude Code + plugin
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude plugin marketplace add bgun42/review-on-loop
-          claude plugin install agent-work-review@review-on-loop
+          claude plugin marketplace add bgun42/veriloop
+          claude plugin install veriloop@veriloop
 
       - name: Run review
         env:
@@ -78,5 +102,6 @@ shipped by this plugin — hooks execute on the user's machine and belong to the
 ```
 
 This makes the review a harness-enforced gate rather than a habit the model must
-remember. See the Claude Code hooks documentation for the exact hook schema in your
-version.
+remember. It is Claude Code-specific: OpenAI's conversion path does not support prompt
+or agent hook handlers in Codex. See the Claude Code hooks documentation for the exact
+hook schema in your version.

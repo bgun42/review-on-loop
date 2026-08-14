@@ -1,5 +1,5 @@
 ---
-description: Initialize agent-work-review for this repository — per-role model configuration, ledger scaffolding, and the optional convention-baseline cache
+description: Initialize Veriloop for this repository — per-role model configuration, ledger scaffolding, and the optional convention-baseline cache
 argument-hint: [optional role=model pairs, e.g. "reviewer=opus developer=sonnet"]
 ---
 

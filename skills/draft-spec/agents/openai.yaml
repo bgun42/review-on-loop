@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft Work Specification"
+  short_description: "Draft a grounded, executable work specification"
+  default_prompt: "Use $draft-spec to draft and confirm a specification for this change."

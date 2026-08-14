@@ -1,127 +1,193 @@
-# agent-work-review
+# Veriloop
 
 [English README](./README.md)
 
-AI 에이전트가 작성한 코드 변경분을 **커밋/머지 전에** 검토하는 Claude Code 스킬입니다.
-에이전트는 그럴듯한 코드를 빠르게 쓰지만, 실수의 유형이 예측 가능합니다. 이 스킬은
-바로 그 유형을 겨냥한 5단계 리뷰를 수행합니다.
+Codex와 Claude Code에서 함께 사용하는 **명세 기반 코드 리뷰·수정 루프**입니다.
 
-| 패스 | 잡아내는 것 |
+에이전트가 작성한 변경을 다섯 관점으로 검증하고, 실패 항목이 사라지고 목표의 인수 조건이 실제 명령으로 확인될 때까지 최대 3회 반복합니다.
+
+## 스킬 아키텍처
+
+```mermaid
+flowchart TD
+    Init["초기화 (선택)<br/>initialize-review-loop · /init"] --> State["모델 설정<br/>.agent-review/config.json"]
+    Draft["명세 확정<br/>draft-spec · /draft"] --> Spec["확정된 명세<br/>실행 가능한 인수 조건"]
+    State --> Run["루프 실행<br/>run-review-loop · /work"]
+    Spec --> Run
+    Run --> Develop["1. 구현"]
+    Develop --> Review["2. 독립 리뷰<br/>agent-work-review"]
+    Review --> Decision{"인수 조건 통과<br/>Failed 없음?"}
+    Decision -- "아니요" --> Fix["3. 지적사항 수정<br/>apply-review-findings"]
+    Fix --> Review
+    Decision -- "예" --> Gate["4. 독립 최종 게이트"]
+    Gate -- "새 Failed 발견" --> Fix
+    Gate -- "통과" --> Archive["5. 실행 기록 보관<br/>loop-dashboard"]
+```
+
+`agent-work-review`는 단독으로도 사용할 수 있습니다. 확인된 명세가 없으면 먼저 `draft-spec`으로 연결되며, 명세 없는 변경을 추측으로 승인하지 않습니다.
+
+## 권장 워크플로
+
+| 단계 | Codex | Claude Code | 결과 |
+|---|---|---|---|
+| 0. 역할별 모델 설정 *(선택)* | `$initialize-review-loop` | `/init` | `.agent-review/config.json`과 findings ledger |
+| 1. 작업 명세 확정 | `$draft-spec` | `/draft` | 저장소 규칙과 실행 가능한 인수 조건이 포함된 명세 |
+| 2. 구현·리뷰·수정 실행 | `$run-review-loop <목표>` | `/work <목표>` | 검증된 변경과 최종 판정 |
+| 3. 실행 결과 확인 | `$loop-dashboard` 또는 자연어 요청 | 자연어 요청 | 오프라인 HTML 대시보드 |
+
+### 0. 루프 초기화 *(선택)*
+
+개발자·수정자·리뷰어·최종 게이트에 사용할 모델을 저장소별로 선택합니다.
+
+```text
+# Codex
+$initialize-review-loop
+
+# Claude Code
+/init
+```
+
+설정은 `.agent-review/config.json`에 저장됩니다. 지정한 모델을 사용할 수 없으면 다른 모델로 몰래 대체하지 않고 루프를 중단합니다.
+
+### 1. 명세 작성과 확인
+
+`draft-spec`은 저장소의 `AGENTS.md` / `CLAUDE.md`, 관련 코드, 테스트, 기존 패턴을 먼저 조사한 뒤 작업 명세를 만듭니다. 각 인수 조건에는 테스트 명령이나 검색 assertion처럼 **그대로 실행할 수 있는 확인 방법**이 연결됩니다.
+
+```text
+# Codex
+$draft-spec 차량별 연료 합계 API를 추가해줘
+
+# Claude Code
+/draft 차량별 연료 합계 API를 추가해줘
+```
+
+초안은 독립적인 guess-hunt 검토를 거쳐, 근거 없이 가정한 결정을 찾아냅니다. 사용자가 명세를 확인하기 전에는 구현 루프가 시작되지 않습니다.
+
+### 2. 목표와 함께 루프 실행
+
+목표에는 확정된 명세와 검증 가능한 완료 조건을 적습니다.
+
+```text
+# Codex
+$run-review-loop docs/fleet-fuel-spec.md 기준으로 연료 합계 API를 구현하고 기존 호출자와 데이터 호환성을 유지해줘
+
+# Claude Code
+/work docs/fleet-fuel-spec.md 기준으로 연료 합계 API를 구현하고 기존 호출자와 데이터 호환성을 유지해줘
+```
+
+루프 내부에서는 다음 순서가 반복됩니다.
+
+1. 기존 diff가 없다면 명세에 맞게 구현합니다.
+2. 새 컨텍스트의 리뷰어가 다섯 관점으로 변경을 검토합니다.
+3. 인수 조건을 실제 명령으로 실행하고 `Failed` 여부를 확인합니다.
+4. 실패 항목을 수정한 뒤 다시 리뷰합니다.
+5. 완료 조건을 만족하면 별도의 최종 게이트가 독립적으로 재검증합니다.
+
+### 3. 종료와 결과 확인
+
+루프는 아래 조건을 모두 만족해야 성공으로 끝납니다.
+
+- 명세의 실행 가능한 인수 조건이 모두 통과
+- 리뷰 판정이 `Pass` 또는 `Pass with warnings`
+- 독립 최종 게이트에서 새로운 `Failed`가 발견되지 않음
+
+안전장치로 최대 3회까지만 반복하며, 실패 항목이 줄지 않거나 되살아나는 경우 사용자에게 판단을 요청합니다. `Warning`만 남은 경우에는 루프를 계속 돌리지 않고 각각 수용·이슈 등록·즉시 정리 중 하나로 처리합니다.
+
+완료된 실행은 `.agent-review/runs/`에 보관됩니다. `loop-dashboard`는 반복별 실패 원인, Failed/Warning 추이, 해결된 항목, 목표 검증 결과를 외부 CDN 없는 단일 HTML로 보여줍니다.
+
+## 필요한 기능만 사용하기
+
+### 현재 변경만 리뷰
+
+다음처럼 자연어로 요청하거나 `$agent-work-review`를 직접 호출합니다.
+
+- “에이전트가 방금 만든 변경을 리뷰해줘”
+- “커밋 전에 현재 diff를 확인해줘”
+- “이 브랜치를 병합해도 안전한지 검토해줘”
+
+리뷰 범위는 **사용자가 지정한 PR·커밋·경로 → 커밋하지 않은 변경 → 기본 브랜치와 현재 브랜치의 차이** 순으로 결정됩니다. 리뷰는 코드를 수정하지 않습니다.
+
+### 기존 리뷰 지적사항만 반영
+
+```text
+$apply-review-findings
+```
+
+`Failed` 항목을 실제 코드에서 다시 확인한 뒤 수정하고, 해결된 항목은 `Pass`로 보고합니다.
+
+### 이전 실행을 대시보드로 보기
+
+```text
+$loop-dashboard
+```
+
+## 리뷰가 확인하는 다섯 관점
+
+| 관점 | 확인 내용 |
 |---|---|
-| **회귀** | 호출처가 갱신되지 않은 심볼 변경/리네임, 직렬화 계약 파손, 몰래 수정된 테스트 단언 |
-| **성능** | N+1 쿼리, 루프 내 I/O, sync-over-async, 무제한 읽기, 페이지네이션 누락 |
-| **비용** | 트래픽·데이터 증가에 비례해 커지는 과금 — Cosmos DB / DynamoDB RU, 호출당 과금 API(LLM·SMS·지도), egress, 로그 수집량. Cosmos DB RU 딥다이브(cross-partition fan-out, 쿼리 vs point-read, 쓰기 증폭) 포함 |
-| **가독성** | 나레이션 주석, 방어적 try/catch 남발, 사변적 일반화, 죽은 코드 — 에이전트 코드 특유의 냄새 |
-| **컨벤션** | *당신 저장소의* 확립된 패턴과의 괴리 — 기준은 일반론이 아니라 당신 repo의 `CLAUDE.md`·린터 설정·이웃 파일에서 발견합니다 |
+| **Regression** | 이름이 바뀐 심볼의 미수정 호출자, 직렬화 계약 파손, 몰래 완화된 테스트 |
+| **Performance** | N+1 쿼리, 반복문 안 I/O, sync-over-async, 무제한 조회, 누락된 페이지네이션 |
+| **Cost** | 요청량·데이터량에 따라 증가하는 API·LLM·SMS·지도·egress·로그 비용과 Cosmos DB RU |
+| **Readability** | 설명만 반복하는 주석, 과도한 방어 래핑, 추측성 일반화, 죽은 코드 |
+| **Conventions** | 일반론이 아니라 현재 저장소의 규칙, 린터 설정, 인접 코드 패턴과의 차이 |
 
-모든 발견 사항은 보고 전에 실제 코드로 재검증되며(**Confirmed** / **Needs
-verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 필수 수정) /
-**Warning**(권고, 차단 안 함) → 최종 판정 **Pass · Pass with warnings · Fail**.
-문제없이 통과한 검사 항목은 명시적으로 Pass로 안내되고, 수정이 완료된 발견도
-**Pass**로 보고됩니다.
+모든 finding은 실제 코드에서 재검증되며 `Confirmed` 또는 `Needs verification`으로 표시됩니다. 결과는 `Failed`와 `Warning`으로 분류하고 최종 판정은 `Pass`, `Pass with warnings`, `Fail` 중 하나입니다. 문제가 발견되지 않은 검사와 수정 완료된 finding도 명시적으로 `Pass`로 남깁니다.
 
 ## 설치
 
-```
-/plugin marketplace add bgun42/review-on-loop
-/plugin install agent-work-review@review-on-loop
-```
+### Codex
 
-별도 설정은 없습니다. 컨벤션 기준은 리뷰 시점에 대상 저장소에서 학습합니다.
-
-## 사용
-
-다음과 같은 요청에 자동으로 발동합니다:
-
-- "에이전트가 작업한 결과물 리뷰해줘"
-- "커밋 전에 이 diff 검토해줘"
-- "이 브랜치 머지해도 안전해?"
-- "review what the agent just did"
-
-리뷰 대상은 우선순위대로: 명시한 대상(PR·커밋 범위·경로) → 미커밋 작업 트리 변경 →
-현재 브랜치와 기본 브랜치의 merge base 비교. 리포트는 대화 중인 언어로 작성됩니다.
-
-리뷰는 **명세 기반**입니다: 변경이 구현하는 명세서(요구사항·설계 문서, 수용 기준이
-있는 티켓, API 계약)를 먼저 확인하고 그것을 기준으로 판정합니다. 명세가 없으면
-리뷰하지 않고 번들된 `draft-spec` 스킬(`/draft`로 직접 호출 가능)이 먼저 나섭니다 — 대상 코드베이스(하우스룰·
-컨벤션·워크플로·목표가 건드리는 코드)를 분석하고, 그 현실에 비추어 사용자의 목표를
-해석한 뒤, 실행형 수용 기준을 갖춘 명세 초안을 작성해 사용자 확정을 받습니다.
-확정 전에는 독립 guess-hunt 리뷰어가 초안을 감사해, 사용자에게 근거를 두지 않고
-가정으로 확정된 결정을 찾아 되묻습니다.
-
-## 루프 엔지니어링: `/work`
-
-목표 기반 develop → review → fix 루프도 함께 제공합니다:
-
-```
-/work docs/fleet-fuel-spec.md 기준: 함대 연료합계 엔드포인트가 하우스룰을 지키며 동작; 기존 데이터·호출처 안 깨짐
+```bash
+codex plugin marketplace add bgun42/veriloop
+codex plugin add veriloop@veriloop
 ```
 
-권장 흐름: **`/init`**(repo당 1회) → **`/draft`**(명세 확정) → **`/work`**(그 명세를
-인용한 루프).
+설치 후 새 Codex 작업을 시작하면 번들 스킬이 검색됩니다.
 
-- 루프는 **명시적 목표 없이는 시작하지 않습니다** — 목표와 검증 가능한 수용 기준을
-  먼저 전달하며, 없으면 물어봅니다.
-- **명세서 없이도 시작하지 않습니다** — 목표 계약은 작업이 구현하는 명세서를
-  인용해야 하며, 없으면 `draft-spec` 스킬로 넘겨 명세를 먼저 작성하고 사용자가
-  확정한 후에만 루프를 시작합니다.
-- 매 반복: 개발(이미 diff가 있으면 생략) → 신선한 컨텍스트 리뷰(`agent-work-review`)
-  → 정지 조건 체크 → 수정(`apply-review-findings`).
-- **목표의 수용 기준이 검증되고 리뷰 판정이 Pass일 때 중지합니다.** 안전장치:
-  최대 3회 반복, 발견이 줄지 않으면(진동) 사용자 에스컬레이션. Warning만으로는
-  루프가 돌지 않습니다.
-- **실행형 수용 기준**: 각 기준에 루프가 실제로 돌릴 체크(테스트 명령·grep 단언)를
-  짝지어 종료 판정에서 모델 재량을 제거합니다. **발견 원장**
-  (`.agent-review/ledger.json`)이 반복 간 발견 상태(Pass/open/recurred/accepted)를
-  추적하고, 성공 선언 전 **최종 게이트** 리뷰어가 독립 확인하며, 잔여 Warning은 명시적
-  처분(수용/이슈 발행/즉시 정리)을 받습니다. 끝난 런은 `.agent-review/runs/`에
-  아카이브되어 다음 사이클과 대시보드가 읽습니다.
-- **모델 라우팅은 사용자 소유**: repo당 한 번 `/init`을 실행해 루프 역할별
-  모델(`developer` / `fixer` / `reviewer` / `gate`)을 직접 설정합니다
-  (`.agent-review/config.json`). 루프는 설정을 그대로 따르며, 유일한 개입은
-  리뷰어/게이트가 개발 모델보다 약하게 설정된 경우의 1회 경고입니다 — 루프는 심판의
-  기준으로 수렴하므로 그 구성은 루프가 보장할 수 있는 상한을 낮춥니다. 통상적 선택:
-  리뷰어·게이트에 최상위 모델, 개발·수정은 저렴한 티어.
-- 구성 요소들은 모든 리뷰 리포트 끝의 기계가독 JSON 블록(`verdict`, `findings[]`)으로
-  연동됩니다 — 이를 이용한 GitHub Actions 게이트·Stop 훅 레시피는
-  [docs/ci.md](docs/ci.md) 참고.
+### Claude Code
 
-`apply-review-findings` 스킬은 단독으로도 동작합니다: "리뷰 지적사항 반영해줘".
-
-루프가 끝나면 번들된 `loop-dashboard` 스킬로 **한눈에 보는 대시보드**를 제안합니다 —
-반복별 재시도 원인, Failed/Warning 추이 그래프, Pass로 해소된 항목, 목표 검증 결과.
-자기완결 HTML(인라인 SVG 차트, CDN 의존 0)이라 플러그인과 함께 배포되고 오프라인에서도
-동작합니다.
-
-> 참고: 루프 호출 없이 모든 세션에 리뷰를 *강제*하려면 Claude Code
-> [Stop 훅](https://docs.anthropic.com/en/docs/claude-code/hooks)을 본인 settings에
-> 걸어 Failed 발견이 있으면 종료를 막게 하면 됩니다. 사용자별 하니스 설정이라 이
-> 플러그인은 배포 대신 문서로 안내합니다.
-
-## 구조
-
+```text
+/plugin marketplace add bgun42/veriloop
+/plugin install veriloop@veriloop
 ```
+
+별도 설정 없이 사용할 수 있으며, 리뷰할 때마다 현재 저장소의 규칙을 읽습니다.
+
+## 실행 기록과 CI
+
+| 경로 | 용도 |
+|---|---|
+| `.agent-review/config.json` | 루프 역할별 모델 설정 |
+| `.agent-review/ledger.json` | 반복을 가로지르는 finding 상태: open, Pass, recurred, accepted |
+| `.agent-review/runs/` | 완료된 실행 기록과 대시보드 입력 |
+
+모든 리뷰 보고서 끝에는 `verdict`와 `findings[]`를 포함한 기계 판독용 JSON 블록이 붙습니다. GitHub Actions 게이트와 Claude Code Stop hook 연결 방법은 [docs/ci.md](docs/ci.md)를 참고하세요.
+
+> **Claude Code 전용:** 루프를 직접 실행하지 않은 세션까지 매번 강제로 리뷰하려면 사용자 설정에 Stop hook을 연결해야 합니다. 이는 사용자별 실행 환경 설정이므로 플러그인이 자동 설치하지 않습니다.
+
+## 저장소 구조
+
+<details>
+<summary>플러그인 파일 구성 보기</summary>
+
+```text
+.agents/plugins/marketplace.json  # Codex Git marketplace entry
+.codex-plugin/plugin.json         # Codex plugin manifest
+.claude-plugin/plugin.json        # Claude Code plugin manifest
 commands/
-├── init.md                   # repo별 초기화: 역할→모델 설정, 원장 스캐폴딩
-├── draft.md                  # draft-spec 전면 호출: 코드베이스+목표 분석 → 확정 명세
-└── work.md                   # 목표 기반 develop→review→fix 루프 제어자
+├── init.md                       # Claude Code 초기화 명령
+├── draft.md                      # Claude Code 명세 작성 명령
+└── work.md                       # Claude Code 루프 실행 명령
 skills/
-├── agent-work-review/
-│   ├── SKILL.md              # 5-pass 리뷰 워크플로 본체 (+ 기계가독 결과 블록)
-│   └── references/
-│       ├── regression.md         # 소비자 추적, 직렬화 경계
-│       ├── performance.md        # N+1, 무제한 읽기, sync-over-async
-│       ├── cost.md               # 과금 모델 + Cosmos DB 딥다이브
-│       ├── readability.md        # 에이전트 특유의 코드 냄새
-│       ├── conventions.md        # repo 선례 발견·대조 방법
-│       └── csharp-conventions.md # Microsoft C# 기본 컨벤션 (repo에 선례가 없을 때의 fallback)
-├── draft-spec/
-│   └── SKILL.md              # 없는 명세를 작성: 코드베이스 분석 → 목표 분석 → 확정 초안
-├── apply-review-findings/
-│   └── SKILL.md              # 리뷰 리포트의 Failed 발견 수정, 해소된 항목은 Pass로 보고
-└── loop-dashboard/
-    └── SKILL.md              # 루프 이력을 자기완결 HTML 대시보드로 렌더링
+├── initialize-review-loop/       # 역할별 모델과 ledger 초기화
+├── draft-spec/                   # 저장소 분석 → 명세 초안 → 사용자 확인
+├── run-review-loop/              # 구현 → 리뷰 → 수정 → 최종 게이트
+├── agent-work-review/            # 다섯 관점의 독립 리뷰
+├── apply-review-findings/        # 검증된 지적사항 수정
+└── loop-dashboard/               # 실행 기록 HTML 시각화
 ```
+
+</details>
 
 ## 라이선스
 

@@ -1,23 +1,15 @@
 ---
 name: agent-work-review
 description: >
-  Use this skill to review recent code changes — a diff, uncommitted work, or a
-  just-finished feature — before they are committed, merged, or deployed. Trigger
-  regardless of who wrote the code: an AI coding agent or subagent (Claude, Cursor,
-  Copilot, an automated task), or the user themselves saying the implementation is done
-  and asking for it to be checked. Trigger regardless of wording or language: review,
-  check, verify, inspect, look over, give the diff a final pass, 검토, 리뷰, 확인,
-  훑어보기. The review covers regression risk, performance, cloud cost (metered
-  services like Cosmos DB, DynamoDB, LLM APIs), readability, and this repo's own
-  conventions — trigger even when the user asks about only one of these for recent
-  changes (e.g. only regressions, only convention violations, only cost). The review
-  is grounded in the change's written specification (requirements/design doc, ticket
-  with acceptance detail, API contract); when none exists, the skill routes to the
-  bundled draft-spec skill to get one written and confirmed first instead of
-  reviewing. Do NOT use
-  for reviewing documents or design proposals, applying findings from a previous
-  review, writing review checklists or process docs, or discussing review culture —
-  only for actually reviewing concrete code changes.
+  Review concrete recent code changes before commit, merge, or deployment: a diff,
+  uncommitted work, branch, PR, or just-finished feature written by a user, coding
+  agent, IDE assistant, subagent, or automated task. Trigger on review, check, verify,
+  inspect, final pass, 검토, 리뷰, 확인, or 훑어보기, including requests focused only on
+  regression, performance, metered-service cloud cost, readability, or repository
+  conventions. Ground the review in a confirmed written specification; when none
+  exists, route to the bundled draft-spec skill before reviewing. Do not use for
+  reviewing documents or designs, applying existing findings, writing review-process
+  guidance, or discussing review culture.
 ---
 
 # Agent Work Review
@@ -44,7 +36,7 @@ specification — a requirements/design document, an ADR, a ticket with concrete
 acceptance detail, an API contract. Establish it before touching the code:
 
 - Identify the spec this change implements: the document the user, branch, PR, or
-  ticket references, the goal contract of a running `/work`, or a doc the user
+  ticket references, the goal contract of a running `run-review-loop`, or a doc the user
   points you to when asked.
 - Read it and carry it through every pass: the regression pass checks the change
   against what the spec promises, and the verdict answers "does this do what the spec
@@ -196,7 +188,7 @@ Rules for the report:
 ### Machine-readable result block
 
 End every report with this fenced JSON block. It is the contract that lets automation —
-the `/work` command, the `apply-review-findings` skill, CI scripts — consume the
+the `run-review-loop` and `apply-review-findings` skills, CI scripts — consume the
 review without parsing prose. Keep the prose report as the source of truth for humans;
 this block only mirrors it.
 

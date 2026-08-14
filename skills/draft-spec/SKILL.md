@@ -2,8 +2,8 @@
 name: draft-spec
 description: >
   Use this skill to produce the written specification for a concrete piece of upcoming
-  development work when none exists yet. The /draft command fronts this skill; the
-  spec gates in the agent-work-review skill and the /work command route here whenever
+  development work when none exists yet. The spec gates in the agent-work-review and
+  run-review-loop skills route here whenever
   they find no referenced spec; and users can invoke it directly in any language:
   "write a spec for this first",
   "draft the spec before we start", "명세서 작성해줘", "명세부터 만들자", "이 작업
@@ -18,7 +18,7 @@ description: >
 # Draft Spec
 
 A specification written from a generic template is fiction; a specification written
-from the code is a contract. The review skill and the loop in this plugin refuse to
+from the code is a contract. The review and loop skills in this plugin refuse to
 work spec-less, and the fastest honest way to produce the missing spec is to read the
 codebase first and interpret the user's goal against what is actually there — not to
 hand the user a blank form.
@@ -112,7 +112,7 @@ build, an HTTP call). A criterion with no runnable check is a taste judgment —
 it or move it out.
 
 **Risk focus** is one short paragraph naming where this change fails worst (which
-lens, which file or contract) — `/work` aims its final-gate reviewer there and the
+lens, which file or contract) — `run-review-loop` aims its final-gate reviewer there and the
 fixer verifies hardest there. Name one area; a risk focus that lists everything aims
 nothing.
 
@@ -146,7 +146,7 @@ converge on the wrong target.
 Present the draft and ask the user to correct and confirm it. Apply their corrections.
 Only a confirmed spec counts.
 
-Then state the confirmed spec's path plainly, so the caller can use it: the
-`/work` goal contract cites it as ground truth for the developer, reviewer, and
+Then state the confirmed spec's path plainly, so the caller can use it. The
+`run-review-loop` goal contract cites it as ground truth for the developer, reviewer, and
 gate; the review skill judges the diff against it. Write the spec (and converse) in
 the language the user is conversing in.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Loop Dashboard"
+  short_description: "Visualize review-loop convergence and results"
+  default_prompt: "Use $loop-dashboard to visualize the latest review-loop run."

@@ -4,7 +4,7 @@
   {"query": "The feature development is complete. Please proceed with the review of that content", "should_trigger": true},
   {"query": "에이전트가 방금 UserService 리팩토링을 끝냈어. 커밋 전에 검토 좀 해줘", "should_trigger": true},
   {"query": "the subagent just finished implementing the billing webhook handler - can you check its work before I merge to develop?", "should_trigger": true},
-  {"query": "clade가 짜준 코드 그대로 올려도 될까? cosmos 쿼리도 몇 개 바꿨더라", "should_trigger": true},
+  {"query": "Codex가 짜준 코드 그대로 올려도 될까? cosmos 쿼리도 몇 개 바꿨더라", "should_trigger": true},
   {"query": "review the uncommitted changes on this branch, an AI wrote most of it and I don't fully trust the cosmos query changes it made", "should_trigger": true},
   {"query": "자동화 봇이 만든 PR #142 머지해도 안전한지 봐줘", "should_trigger": true},
   {"query": "이거 커서가 짜준 건데 회귀 없는지 확인해줘. 특히 DTO 필드 바꾼 거", "should_trigger": true},

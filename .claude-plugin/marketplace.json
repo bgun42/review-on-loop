@@ -1,18 +1,18 @@
 {
-  "name": "review-on-loop",
+  "name": "veriloop",
   "owner": {
     "name": "bgun42"
   },
   "metadata": {
     "description": "Review code changes produced by AI agents before they land: regression risk, performance defects, cloud-cost defects, readability, and convention adherence.",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "plugins": [
     {
-      "name": "agent-work-review",
+      "name": "veriloop",
       "source": "./",
       "description": "Reviews agent-produced diffs across five dimensions — regression, performance, cloud cost (Cosmos DB and other metered services), readability, repo-convention adherence — spec-gated: work without a written specification is first specified via the bundled draft-spec skill (codebase analysis → goal analysis → confirmed spec), then reviewed.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "bgun42"
       },

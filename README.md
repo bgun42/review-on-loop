@@ -1,134 +1,193 @@
-# agent-work-review
+# Veriloop
 
 [한국어 README](./README.ko.md)
 
-A Claude Code skill that reviews code changes produced by AI agents **before they are
-committed or merged**. AI agents write plausible code fast — and make a predictable
-family of mistakes. This skill runs a five-pass review targeted at exactly those:
+A **spec-grounded code review and repair loop** for Codex and Claude Code.
 
-| Pass | What it catches |
+It checks agent-written changes from five perspectives, then repeats for up to three iterations until no failed finding remains and the goal's acceptance checks pass as executable commands.
+
+## Skill architecture
+
+```mermaid
+flowchart TD
+    Init["Initialize (optional)<br/>initialize-review-loop · /init"] --> State["Model routing<br/>.agent-review/config.json"]
+    Draft["Confirm specification<br/>draft-spec · /draft"] --> Spec["Confirmed specification<br/>Executable acceptance checks"]
+    State --> Run["Run the loop<br/>run-review-loop · /work"]
+    Spec --> Run
+    Run --> Develop["1. Develop"]
+    Develop --> Review["2. Independent review<br/>agent-work-review"]
+    Review --> Decision{"Acceptance checks pass<br/>and no Failed?"}
+    Decision -- "No" --> Fix["3. Apply findings<br/>apply-review-findings"]
+    Fix --> Review
+    Decision -- "Yes" --> Gate["4. Independent final gate"]
+    Gate -- "New Failed" --> Fix
+    Gate -- "Pass" --> Archive["5. Archive the run<br/>loop-dashboard"]
+```
+
+`agent-work-review` also works on its own. If there is no confirmed specification, it routes to `draft-spec` first instead of approving spec-less work by guesswork.
+
+## Recommended workflow
+
+| Step | Codex | Claude Code | Output |
+|---|---|---|---|
+| 0. Configure role models *(optional)* | `$initialize-review-loop` | `/init` | `.agent-review/config.json` and findings ledger |
+| 1. Confirm the work specification | `$draft-spec` | `/draft` | A repository-grounded spec with executable acceptance checks |
+| 2. Develop, review, and repair | `$run-review-loop <goal>` | `/work <goal>` | Verified changes and a final verdict |
+| 3. Inspect the completed run | `$loop-dashboard` or a natural-language request | Natural-language request | An offline HTML dashboard |
+
+### 0. Initialize the loop *(optional)*
+
+Choose the model used for each role: developer, fixer, reviewer, and final gate.
+
+```text
+# Codex
+$initialize-review-loop
+
+# Claude Code
+/init
+```
+
+The selection is stored in `.agent-review/config.json`. If a configured model is unavailable, the loop stops instead of silently substituting another one.
+
+### 1. Draft and confirm the specification
+
+`draft-spec` first inspects the repository's `AGENTS.md` / `CLAUDE.md`, relevant code, tests, and established patterns. It then writes a work specification in which every acceptance criterion is paired with a command that can actually verify it, such as a test or a grep assertion.
+
+```text
+# Codex
+$draft-spec add a per-vehicle fuel total API
+
+# Claude Code
+/draft add a per-vehicle fuel total API
+```
+
+Before you confirm the draft, an independent guess-hunt review looks for decisions that were assumed rather than grounded in the repository or your intent. The implementation loop does not start until you confirm the specification.
+
+### 2. Run the loop with an explicit goal
+
+The goal should cite the confirmed specification and state the verifiable outcome.
+
+```text
+# Codex
+$run-review-loop implement the fuel-total API per docs/fleet-fuel-spec.md while preserving existing data and callers
+
+# Claude Code
+/work implement the fuel-total API per docs/fleet-fuel-spec.md while preserving existing data and callers
+```
+
+Each iteration follows the same sequence:
+
+1. Implement the specification, unless the target diff already exists.
+2. Review the change in a fresh context across five focused passes.
+3. Run the acceptance checks and inspect the review for `Failed` findings.
+4. Repair verified failures, then review again.
+5. When the completion conditions hold, run a separate independent final gate.
+
+### 3. Stop and inspect the result
+
+The loop succeeds only when all of these conditions hold:
+
+- Every executable acceptance check in the specification passes.
+- The review verdict is `Pass` or `Pass with warnings`.
+- The independent final gate finds no new `Failed` item.
+
+The loop is capped at three iterations. If failures stop decreasing or recur, it escalates the decision to you. Warnings do not keep the loop running; each remaining warning is explicitly accepted, filed as follow-up work, or fixed now.
+
+Completed runs are archived under `.agent-review/runs/`. `loop-dashboard` turns them into a self-contained HTML report showing retry causes, Failed/Warning trends, resolved findings, and goal verification—without an external CDN.
+
+## Use only the piece you need
+
+### Review the current change
+
+Ask naturally or invoke `$agent-work-review` directly:
+
+- “Review what the agent just changed.”
+- “Check this diff before I commit.”
+- “Is this branch safe to merge?”
+
+Scope is resolved in this order: **a PR, commit range, or path you name → uncommitted changes → the current branch against the default branch's merge base**. Review mode does not modify code.
+
+### Apply an existing review report
+
+```text
+$apply-review-findings
+```
+
+The skill re-verifies each `Failed` item against the actual code, repairs it, and reports resolved findings as `Pass`.
+
+### Open a dashboard for previous runs
+
+```text
+$loop-dashboard
+```
+
+## The five review passes
+
+| Pass | What it checks |
 |---|---|
-| **Regression** | Changed/renamed symbols with un-updated callers, broken serialization contracts, silently modified test assertions |
+| **Regression** | Unupdated callers of changed symbols, broken serialization contracts, silently weakened tests |
 | **Performance** | N+1 queries, I/O in loops, sync-over-async, unbounded reads, missing pagination |
-| **Cost** | Spend that scales with traffic/data on metered services — Cosmos DB / DynamoDB request units, per-call APIs (LLMs, SMS, maps), egress, log ingestion. Includes a Cosmos DB RU deep-dive (cross-partition fan-out, query-vs-point-read, write amplification) |
-| **Readability** | Narration comments, defensive wrapping, speculative generality, dead code — the smells specific to agent-written code |
-| **Conventions** | Divergence from *your repository's* established patterns — discovered from your `CLAUDE.md`, linter configs, and sibling files, never from generic "best practice" |
+| **Cost** | Traffic- or data-scaled API, LLM, SMS, map, egress, logging, and Cosmos DB RU costs |
+| **Readability** | Narration comments, excessive defensive wrapping, speculative generality, dead code |
+| **Conventions** | The current repository's rules, linters, and neighboring patterns—not generic best practice |
 
-Findings are verified against the actual code before being reported (each is marked
-**Confirmed** or **Needs verification**) and classified CI-style: **Failed** (must be
-fixed before landing) or **Warning** (advisory, does not block), rolled up into a
-verdict of **Pass · Pass with warnings · Fail**. Checks that found nothing are listed
-explicitly as passed, and once a finding is fixed it is reported as **Pass**.
+Every finding is rechecked against the code and marked `Confirmed` or `Needs verification`. Results are classified as `Failed` or `Warning` and roll up to `Pass`, `Pass with warnings`, or `Fail`. Checks that found nothing—and findings that have been fixed—are reported explicitly as `Pass`.
 
 ## Install
 
-```
-/plugin marketplace add bgun42/review-on-loop
-/plugin install agent-work-review@review-on-loop
-```
+### Codex
 
-No configuration needed. The skill learns each repository's conventions at review time.
-
-## Use
-
-The skill triggers automatically on requests like:
-
-- "review what the agent just did"
-- "check this diff before I commit"
-- "is this branch safe to merge?"
-
-It reviews, in order of precedence: the target you name (PR / commit range / paths) →
-uncommitted working-tree changes → the current branch against its merge base with the
-default branch. Reports are written in whatever language you're conversing in.
-
-The review is **spec-grounded**: it first identifies the written specification the
-change implements (requirements/design doc, ticket with acceptance detail, API
-contract) and judges the change against it. If no spec exists, the bundled
-`draft-spec` skill takes over first (also invocable directly as `/draft`): it
-analyzes the codebase (house rules,
-conventions, workflow, the code the goal touches), interprets your goal against that
-reality, and drafts the spec — with executable acceptance criteria — for you to
-correct and confirm. Before confirmation an independent guess-hunt reviewer audits
-the draft, hunting decisions that were assumed rather than grounded in you.
-Spec-less work is not reviewed.
-
-## Loop engineering: `/work`
-
-The plugin also ships a goal-driven develop → review → fix loop:
-
-```
-/work per docs/fleet-fuel-spec.md: fleet fuel-total endpoint works per house rules; existing data and callers unbroken
+```bash
+codex plugin marketplace add bgun42/veriloop
+codex plugin add veriloop@veriloop
 ```
 
-Recommended flow: **`/init`** (once per repo) → **`/draft`** (confirmed spec) →
-**`/work`** (the loop, citing that spec).
+Start a new Codex task after installation so the bundled skills are discovered.
 
-- The loop **refuses to start without an explicit goal** — you state the goal and
-  verifiable acceptance criteria up front (it asks if they're missing).
-- It also **refuses to start without a specification** — the goal contract must cite
-  the written spec the work implements; if none exists, the loop hands off to
-  `draft-spec` to write it and only starts once you confirm it.
-- Each iteration: develop (skipped if the diff already exists) → fresh-context review
-  (`agent-work-review`) → stop-condition check → fix (`apply-review-findings`).
-- **It stops when your goal's acceptance criteria verify AND the review verdict is
-  Pass.** Safety stops: max 3 iterations, and escalation to you if findings stop
-  decreasing (oscillation). Warnings never keep the loop running.
-- **Executable acceptance criteria**: each criterion is paired with the exact check
-  the loop runs (a test command, a grep assertion) — termination is mechanical, not a
-  judgment call. A **findings ledger** (`.agent-review/ledger.json`) tracks every
-  finding across iterations (Pass / open / recurred / accepted), a **final gate**
-  reviewer independently confirms success before the loop exits, and remaining
-  warnings get an explicit disposition (accept / file issue / clean up now). Each
-  finished run is archived under `.agent-review/runs/` for the next cycle and the
-  dashboard.
-- **Model routing, user-owned**: run `/init` once per repo to choose which
-  model each loop role uses (`developer` / `fixer` / `reviewer` / `gate`, written to
-  `.agent-review/config.json`). The loop follows your configuration exactly; the only
-  intervention is a one-time warning if the reviewer/gate is set weaker than the
-  developer — the loop converges on the judge's standards, so that setup caps what it
-  can guarantee. Typical choice: strongest model on reviewer/gate, cheaper tier on
-  develop/fix.
-- The pieces interoperate through a machine-readable JSON block (`verdict`,
-  `findings[]`) that every review report ends with — see [docs/ci.md](docs/ci.md) for
-  a GitHub Actions gate and a Stop-hook recipe built on it.
+### Claude Code
 
-The `apply-review-findings` skill also works standalone: "apply the review findings" /
-"리뷰 지적사항 반영해줘".
-
-When the loop finishes it offers a **one-glance dashboard** of the run — retry causes
-per iteration, Failed/Warning trend chart, resolved-as-Pass items, goal verification —
-via the bundled `loop-dashboard` skill (self-contained HTML, inline SVG charts, zero
-CDN dependencies, so it ships with the plugin and works offline).
-
-> Tip: to *enforce* review on every session without invoking the loop, wire a Claude
-> Code [Stop hook](https://docs.anthropic.com/en/docs/claude-code/hooks) in your own
-> settings that runs a review and blocks completion on Failed findings. That is a
-> per-user harness setting, so this plugin documents it rather than shipping it.
-
-## Structure
-
+```text
+/plugin marketplace add bgun42/veriloop
+/plugin install veriloop@veriloop
 ```
+
+No configuration is required. The plugin discovers the repository's conventions at review time.
+
+## Run state and CI
+
+| Path | Purpose |
+|---|---|
+| `.agent-review/config.json` | Per-role model routing |
+| `.agent-review/ledger.json` | Finding state across iterations: open, Pass, recurred, accepted |
+| `.agent-review/runs/` | Archived runs used by the dashboard |
+
+Every review report ends with a machine-readable JSON block containing `verdict` and `findings[]`. See [docs/ci.md](docs/ci.md) for a GitHub Actions gate and a Claude Code Stop-hook recipe built on that contract.
+
+> **Claude Code only:** To enforce a review on sessions that do not invoke the loop, add a Stop hook in your own Claude Code settings. Hooks are user-owned harness configuration, so the plugin documents this setup instead of installing it.
+
+## Repository structure
+
+<details>
+<summary>Show plugin files</summary>
+
+```text
+.agents/plugins/marketplace.json  # Codex Git marketplace entry
+.codex-plugin/plugin.json         # Codex plugin manifest
+.claude-plugin/plugin.json        # Claude Code plugin manifest
 commands/
-├── init.md                   # per-repo setup: role→model config, ledger scaffolding
-├── draft.md                  # fronts draft-spec: codebase + goal analysis → confirmed spec
-└── work.md                   # goal-driven develop→review→fix loop controller
+├── init.md                       # Claude Code initialization command
+├── draft.md                      # Claude Code specification command
+└── work.md                       # Claude Code loop command
 skills/
-├── agent-work-review/
-│   ├── SKILL.md              # the five-pass review workflow (+ machine-readable result block)
-│   └── references/
-│       ├── regression.md         # consumer tracing, serialization boundaries
-│       ├── performance.md        # N+1, unbounded reads, sync-over-async
-│       ├── cost.md               # metered-service model + Cosmos DB deep-dive
-│       ├── readability.md        # agent-specific code smells
-│       ├── conventions.md        # discovering and enforcing repo precedent
-│       └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
-├── draft-spec/
-│   └── SKILL.md              # writes the missing spec: codebase analysis → goal analysis → confirmed draft
-├── apply-review-findings/
-│   └── SKILL.md              # fixes Failed findings from a review report, reports them as Pass
-└── loop-dashboard/
-    └── SKILL.md              # renders loop history as a self-contained HTML dashboard
+├── initialize-review-loop/       # Role-model routing and ledger setup
+├── draft-spec/                   # Repository analysis → draft → confirmation
+├── run-review-loop/              # Develop → review → repair → final gate
+├── agent-work-review/            # Independent five-pass review
+├── apply-review-findings/        # Repair verified findings
+└── loop-dashboard/               # Render run history as offline HTML
 ```
+
+</details>
 
 ## License
 
