@@ -1,15 +1,19 @@
 ---
 name: agent-work-review
 description: >
-  Review code changes produced by an AI agent (or any automated tool) before they are
-  committed or merged. Checks five dimensions: regression risk, performance defects,
-  cloud-cost defects (metered services like Cosmos DB, DynamoDB, LLM APIs), readability,
-  and adherence to the repository's existing conventions. Use this skill whenever an
-  agent, subagent, or automated task has just finished writing or modifying code and the
-  result needs to be checked — including requests like "review what the agent did",
-  "check this diff before I commit", "is this change safe to merge?", "verify the
-  agent's work", or when the user asks for a pre-commit / pre-merge review of recent
-  changes, even if they don't use the word "review".
+  Use this skill to review recent code changes — a diff, uncommitted work, or a
+  just-finished feature — before they are committed, merged, or deployed. Trigger
+  regardless of who wrote the code: an AI coding agent or subagent (Claude, Cursor,
+  Copilot, an automated task), or the user themselves saying the implementation is done
+  and asking for it to be checked. Trigger regardless of wording or language: review,
+  check, verify, inspect, look over, give the diff a final pass, 검토, 리뷰, 확인,
+  훑어보기. The review covers regression risk, performance, cloud cost (metered
+  services like Cosmos DB, DynamoDB, LLM APIs), readability, and this repo's own
+  conventions — trigger even when the user asks about only one of these for recent
+  changes (e.g. only regressions, only convention violations, only cost). Do NOT use
+  for reviewing documents or design proposals, applying findings from a previous
+  review, writing review checklists or process docs, or discussing review culture —
+  only for actually reviewing concrete code changes.
 ---
 
 # Agent Work Review
