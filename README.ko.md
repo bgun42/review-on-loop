@@ -39,18 +39,48 @@ Approve with nits · Needs changes · Block)으로 집계됩니다.
 리뷰 대상은 우선순위대로: 명시한 대상(PR·커밋 범위·경로) → 미커밋 작업 트리 변경 →
 현재 브랜치와 기본 브랜치의 merge base 비교. 리포트는 대화 중인 언어로 작성됩니다.
 
+## 루프 엔지니어링: `/review-loop`
+
+목표 기반 develop → review → fix 루프도 함께 제공합니다:
+
+```
+/review-loop 함대 연료합계 엔드포인트가 하우스룰을 지키며 동작; 기존 데이터·호출처 안 깨짐
+```
+
+- 루프는 **명시적 목표 없이는 시작하지 않습니다** — 목표와 검증 가능한 수용 기준을
+  먼저 전달하며, 없으면 물어봅니다.
+- 매 반복: 개발(이미 diff가 있으면 생략) → 신선한 컨텍스트 리뷰(`agent-work-review`)
+  → 정지 조건 체크 → 수정(`apply-review-findings`).
+- **목표의 수용 기준이 검증되고 리뷰 판정이 Approve일 때 중지합니다.** 안전장치:
+  최대 3회 반복, 발견이 줄지 않으면(진동) 사용자 에스컬레이션. Nit만으로는 루프가
+  돌지 않습니다.
+- 구성 요소들은 모든 리뷰 리포트 끝의 기계가독 JSON 블록(`verdict`, `findings[]`)으로
+  연동됩니다 — CI에서 소비할 수도 있습니다.
+
+`apply-review-findings` 스킬은 단독으로도 동작합니다: "리뷰 지적사항 반영해줘".
+
+> 참고: 루프 호출 없이 모든 세션에 리뷰를 *강제*하려면 Claude Code
+> [Stop 훅](https://docs.anthropic.com/en/docs/claude-code/hooks)을 본인 settings에
+> 걸어 Blocker가 있으면 종료를 막게 하면 됩니다. 사용자별 하니스 설정이라 이
+> 플러그인은 배포 대신 문서로 안내합니다.
+
 ## 구조
 
 ```
-skills/agent-work-review/
-├── SKILL.md                  # 5-pass 워크플로 본체
-└── references/
-    ├── regression.md         # 소비자 추적, 직렬화 경계
-    ├── performance.md        # N+1, 무제한 읽기, sync-over-async
-    ├── cost.md               # 과금 모델 + Cosmos DB 딥다이브
-    ├── readability.md        # 에이전트 특유의 코드 냄새
-    ├── conventions.md        # repo 선례 발견·대조 방법
-    └── csharp-conventions.md # Microsoft C# 기본 컨벤션 (repo에 선례가 없을 때의 fallback)
+commands/
+└── review-loop.md            # 목표 기반 develop→review→fix 루프 제어자
+skills/
+├── agent-work-review/
+│   ├── SKILL.md              # 5-pass 리뷰 워크플로 본체 (+ 기계가독 결과 블록)
+│   └── references/
+│       ├── regression.md         # 소비자 추적, 직렬화 경계
+│       ├── performance.md        # N+1, 무제한 읽기, sync-over-async
+│       ├── cost.md               # 과금 모델 + Cosmos DB 딥다이브
+│       ├── readability.md        # 에이전트 특유의 코드 냄새
+│       ├── conventions.md        # repo 선례 발견·대조 방법
+│       └── csharp-conventions.md # Microsoft C# 기본 컨벤션 (repo에 선례가 없을 때의 fallback)
+└── apply-review-findings/
+    └── SKILL.md              # 리뷰 리포트의 Blocker/Major 수정, Nit는 절대 건드리지 않음
 ```
 
 ## 라이선스

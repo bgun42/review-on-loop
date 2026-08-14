@@ -161,3 +161,30 @@ Rules for the report:
   with a confident "checked and clean" section is a perfectly good review.
 - Suggest fixes but do not apply them unless the user asks. The deliverable of this
   skill is the review.
+
+### Machine-readable result block
+
+End every report with this fenced JSON block. It is the contract that lets automation —
+the `review-loop` command, the `apply-review-findings` skill, CI scripts — consume the
+review without parsing prose. Keep the prose report as the source of truth for humans;
+this block only mirrors it.
+
+```json
+{
+  "verdict": "approve | approve_with_nits | needs_changes | block",
+  "findings": [
+    {
+      "severity": "blocker | major | minor | nit",
+      "title": "same title as the prose finding",
+      "file": "relative/path",
+      "line": 0,
+      "confidence": "confirmed | needs_verification",
+      "fix_hint": "one-line suggested fix"
+    }
+  ]
+}
+```
+
+Rules: `verdict` and `findings` must match the prose exactly (same count, same
+severities, same titles — a mismatch breaks the loop that consumes it). An approved
+review has `"findings": []` or nit-only entries.

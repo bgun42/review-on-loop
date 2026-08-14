@@ -40,18 +40,49 @@ It reviews, in order of precedence: the target you name (PR / commit range / pat
 uncommitted working-tree changes → the current branch against its merge base with the
 default branch. Reports are written in whatever language you're conversing in.
 
+## Loop engineering: `/review-loop`
+
+The plugin also ships a goal-driven develop → review → fix loop:
+
+```
+/review-loop fleet fuel-total endpoint works per house rules; existing data and callers unbroken
+```
+
+- The loop **refuses to start without an explicit goal** — you state the goal and
+  verifiable acceptance criteria up front (it asks if they're missing).
+- Each iteration: develop (skipped if the diff already exists) → fresh-context review
+  (`agent-work-review`) → stop-condition check → fix (`apply-review-findings`).
+- **It stops when your goal's acceptance criteria verify AND the review verdict is
+  Approve.** Safety stops: max 3 iterations, and escalation to you if findings stop
+  decreasing (oscillation). Nits never keep the loop running.
+- The pieces interoperate through a machine-readable JSON block (`verdict`,
+  `findings[]`) that every review report ends with — you can consume it from CI too.
+
+The `apply-review-findings` skill also works standalone: "apply the review findings" /
+"리뷰 지적사항 반영해줘".
+
+> Tip: to *enforce* review on every session without invoking the loop, wire a Claude
+> Code [Stop hook](https://docs.anthropic.com/en/docs/claude-code/hooks) in your own
+> settings that runs a review and blocks completion on Blockers. That is a per-user
+> harness setting, so this plugin documents it rather than shipping it.
+
 ## Structure
 
 ```
-skills/agent-work-review/
-├── SKILL.md                  # the five-pass workflow
-└── references/
-    ├── regression.md         # consumer tracing, serialization boundaries
-    ├── performance.md        # N+1, unbounded reads, sync-over-async
-    ├── cost.md               # metered-service model + Cosmos DB deep-dive
-    ├── readability.md        # agent-specific code smells
-    ├── conventions.md        # discovering and enforcing repo precedent
-    └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
+commands/
+└── review-loop.md            # goal-driven develop→review→fix loop controller
+skills/
+├── agent-work-review/
+│   ├── SKILL.md              # the five-pass review workflow (+ machine-readable result block)
+│   └── references/
+│       ├── regression.md         # consumer tracing, serialization boundaries
+│       ├── performance.md        # N+1, unbounded reads, sync-over-async
+│       ├── cost.md               # metered-service model + Cosmos DB deep-dive
+│       ├── readability.md        # agent-specific code smells
+│       ├── conventions.md        # discovering and enforcing repo precedent
+│       └── csharp-conventions.md # Microsoft C# baseline (fallback when the repo has no precedent)
+└── apply-review-findings/
+    └── SKILL.md              # fixes Blockers/Majors from a review report, never nits
 ```
 
 ## License
