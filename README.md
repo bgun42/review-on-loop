@@ -36,7 +36,6 @@ The skill triggers automatically on requests like:
 - "review what the agent just did"
 - "check this diff before I commit"
 - "is this branch safe to merge?"
-- "에이전트가 작업한 결과물 리뷰해줘"
 
 It reviews, in order of precedence: the target you name (PR / commit range / paths) →
 uncommitted working-tree changes → the current branch against its merge base with the
