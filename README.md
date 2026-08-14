@@ -1,17 +1,17 @@
+<p align="center">
+  <a href="./README.md">
+    <img src="https://img.shields.io/badge/English-30363D?style=for-the-badge" alt="Read in English" />
+  </a>
+  <a href="./README.ko.md">
+    <img src="https://img.shields.io/badge/한국어-30363D?style=for-the-badge" alt="한국어로 읽기" />
+  </a>
+</p>
+
 # Veriloop
 
 A **spec-grounded code review and repair loop** for Codex and Claude Code.
 
 It checks agent-written changes from five perspectives, then repeats for up to three iterations until no failed finding remains and the goal's acceptance checks pass as executable commands.
-
-<p align="center">
-  <a href="./README.md">
-    <img src="https://img.shields.io/badge/English-2F80ED?style=flat-square" alt="Read in English" />
-  </a>
-  <a href="./README.ko.md">
-    <img src="https://img.shields.io/badge/Korean-8B5CF6?style=flat-square" alt="Read in Korean" />
-  </a>
-</p>
 
 <p align="center">
   <a href="#install">
@@ -24,18 +24,18 @@ It checks agent-written changes from five perspectives, then repeats for up to t
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/skills-6-7C4DFF" alt="6 skills" />
-  <img src="https://img.shields.io/badge/review_passes-5-2F80ED" alt="5 review passes" />
-  <img src="https://img.shields.io/badge/platforms-Codex_%2B_Claude-18A999" alt="Codex and Claude Code" />
-  <img src="https://img.shields.io/badge/blind_mode-strict-EC407A" alt="Strict blind mode" />
+  <kbd>skills 6</kbd>
+  <kbd>review passes 5</kbd>
+  <kbd>platforms Codex + Claude</kbd>
+  <kbd>blind mode strict</kbd>
   <a href="https://github.com/dev-geon/veriloop/stargazers">
-    <img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat" alt="GitHub stars" />
+    <img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat-square&color=30363D&labelColor=30363D" alt="GitHub stars" />
   </a>
   <a href="https://github.com/dev-geon/veriloop/releases/latest">
-    <img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat" alt="Latest release" />
+    <img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat-square&color=30363D&labelColor=30363D" alt="Latest release" />
   </a>
   <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat" alt="MIT license" />
+    <img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat-square&color=30363D&labelColor=30363D" alt="MIT license" />
   </a>
 </p>
 
