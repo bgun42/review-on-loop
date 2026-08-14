@@ -6,10 +6,10 @@ It checks agent-written changes from five perspectives, then repeats for up to t
 
 <p align="center">
   <a href="./README.md">
-    <img src="https://img.shields.io/badge/English-README-2F80ED?style=flat-square" alt="Read in English" />
+    <img src="https://img.shields.io/badge/English-2F80ED?style=flat-square" alt="Read in English" />
   </a>
   <a href="./README.ko.md">
-    <img src="https://img.shields.io/badge/한국어-README-8B5CF6?style=flat-square" alt="한국어로 읽기" />
+    <img src="https://img.shields.io/badge/Korean-8B5CF6?style=flat-square" alt="Read in Korean" />
   </a>
 </p>
 
