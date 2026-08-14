@@ -1,10 +1,43 @@
 # Veriloop
 
-[English README](./README.md)
-
 Codex와 Claude Code에서 함께 사용하는 **명세 기반 코드 리뷰·수정 루프**입니다.
 
 에이전트가 작성한 변경을 다섯 관점으로 검증하고, 실패 항목이 사라지고 목표의 인수 조건이 실제 명령으로 확인될 때까지 최대 3회 반복합니다.
+
+<p align="center">
+  <a href="./README.md">
+    <img src="https://img.shields.io/badge/English-README-2F80ED?style=flat-square" alt="Read in English" />
+  </a>
+  <a href="./README.ko.md">
+    <img src="https://img.shields.io/badge/한국어-README-8B5CF6?style=flat-square" alt="한국어로 읽기" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="#설치">
+    <img src="https://img.shields.io/badge/▶_설치-열기-111111?style=for-the-badge&labelColor=5B5B5B" alt="Veriloop 설치" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="#권장-워크플로">
+    <img src="https://img.shields.io/badge/▶_워크플로-살펴보기-8B5CF6?style=for-the-badge&labelColor=5B5B5B" alt="Veriloop 워크플로 살펴보기" />
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/스킬-6-7C4DFF" alt="스킬 6개" />
+  <img src="https://img.shields.io/badge/리뷰_관점-5-2F80ED" alt="리뷰 관점 5개" />
+  <img src="https://img.shields.io/badge/지원-Codex_%2B_Claude-18A999" alt="Codex와 Claude Code 지원" />
+  <img src="https://img.shields.io/badge/블라인드_모드-엄격-EC407A" alt="엄격 블라인드 모드" />
+  <a href="https://github.com/dev-geon/veriloop/stargazers">
+    <img src="https://img.shields.io/github/stars/dev-geon/veriloop?style=flat" alt="GitHub 스타" />
+  </a>
+  <a href="https://github.com/dev-geon/veriloop/releases/latest">
+    <img src="https://img.shields.io/github/v/release/dev-geon/veriloop?style=flat" alt="최신 릴리스" />
+  </a>
+  <a href="https://github.com/dev-geon/veriloop/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/dev-geon/veriloop?style=flat" alt="MIT 라이선스" />
+  </a>
+</p>
 
 ## 스킬 아키텍처
 
