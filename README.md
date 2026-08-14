@@ -23,8 +23,8 @@ explicitly as passed, and once a finding is fixed it is reported as **Pass**.
 ## Install
 
 ```
-/plugin marketplace add <owner>/agent-work-review
-/plugin install agent-work-review@agent-work-review
+/plugin marketplace add <owner>/review-on-loop
+/plugin install agent-work-review@review-on-loop
 ```
 
 No configuration needed. The skill learns each repository's conventions at review time.

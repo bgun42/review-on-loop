@@ -23,8 +23,8 @@ verification** 구분), CI 스타일로 분류됩니다: **Failed**(랜딩 전 �
 ## 설치
 
 ```
-/plugin marketplace add <owner>/agent-work-review
-/plugin install agent-work-review@agent-work-review
+/plugin marketplace add <owner>/review-on-loop
+/plugin install agent-work-review@review-on-loop
 ```
 
 별도 설정은 없습니다. 컨벤션 기준은 리뷰 시점에 대상 저장소에서 학습합니다.

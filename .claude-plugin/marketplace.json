@@ -1,7 +1,7 @@
 {
-  "name": "agent-work-review",
+  "name": "review-on-loop",
   "owner": {
-    "name": "lab021adm"
+    "name": "bgun42"
   },
   "metadata": {
     "description": "Review code changes produced by AI agents before they land: regression risk, performance defects, cloud-cost defects, readability, and convention adherence.",

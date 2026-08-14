@@ -23,8 +23,8 @@ jobs:
       - name: Install Claude Code + plugin
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude plugin marketplace add <owner>/agent-work-review
-          claude plugin install agent-work-review@agent-work-review
+          claude plugin marketplace add <owner>/review-on-loop
+          claude plugin install agent-work-review@review-on-loop
 
       - name: Run review
         env:
