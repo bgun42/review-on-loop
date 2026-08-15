@@ -10,9 +10,17 @@
       "check": "python3 -c \"from evals.fixtures.sample_project import normalize_iso_date; assert normalize_iso_date('2026-08-15') == '2026-08-15'\"",
       "exit_code": 0,
       "result": "pass",
-      "evidence": "exit 0: ISO date preserved"
+      "evidence": "exit 0: ISO date preserved",
+      "artifact_path": "evals/fixtures/artifacts/developer-clean.log"
     }
   ],
   "tool_failures": [],
+  "artifacts": [
+    {
+      "path": "evals/fixtures/artifacts/developer-clean.log",
+      "bytes": 41,
+      "sha256": "3e158d4aac4e005f19454625172ee5c725ff3139ac70a18f4440b2ba17741ae2"
+    }
+  ],
   "blocker": null
 }

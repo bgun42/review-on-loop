@@ -5,6 +5,7 @@
   "changed_files": [],
   "checks": [],
   "tool_failures": [],
+  "artifacts": [],
   "blocker": {
     "code": "invalid_result",
     "message": "format retry was schema-invalid",

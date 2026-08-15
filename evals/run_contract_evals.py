@@ -18,6 +18,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
 DEFAULT_CASES = Path(__file__).with_name("contract-cases.json")
+WORKER_RESULT_MAX_BYTES = 16_384
 
 REVIEW_BRIEF = {
     "strict_blind",
@@ -53,6 +54,9 @@ SKILL_CONTRACTS = {
     "whole-object JSON parsing": r"Never extract JSON from mixed prose with a regular expression",
     "single format retry": r"allow one format-only retry in the same\s+worker context",
     "completed worker semantics": r"`completed` requires `termination: completed`",
+    "bounded worker envelope": r"entire UTF-8 worker result at or below 16 KiB",
+    "verified artifact handoff": r"byte count and SHA-256 digest",
+    "lazy artifact reads": r"Do not read artifacts into controller context on a successful path",
 }
 
 
@@ -139,6 +143,7 @@ def validate_schema(
 
     if isinstance(value, str):
         require(len(value) >= schema.get("minLength", 0), f"{path}: string is too short")
+        require(len(value) <= schema.get("maxLength", len(value)), f"{path}: string is too long")
     if isinstance(value, int) and not isinstance(value, bool):
         require(value >= schema.get("minimum", value), f"{path}: below minimum")
         require(value <= schema.get("maximum", value), f"{path}: above maximum")
@@ -189,6 +194,8 @@ def validate_worker_semantics(
     host_termination: str | None = None,
 ) -> None:
     validate_result("worker", result)
+    encoded_size = len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    require(encoded_size <= WORKER_RESULT_MAX_BYTES, f"{label}: worker result exceeds the byte budget")
     if expected_role is not None:
         require(result["role"] == expected_role, f"{label}: worker role disagrees with controller event")
 
@@ -196,7 +203,34 @@ def validate_worker_semantics(
     termination = result["termination"]
     checks = result["checks"]
     tool_failures = result["tool_failures"]
+    artifacts = result["artifacts"]
     blocker = result["blocker"]
+
+    artifact_root = (ROOT / "evals/fixtures/artifacts").resolve()
+    artifact_paths = [item["path"] for item in artifacts]
+    require(len(artifact_paths) == len(set(artifact_paths)), f"{label}: artifact paths are duplicated")
+    for index, artifact in enumerate(artifacts):
+        unresolved_path = ROOT / artifact["path"]
+        require(not unresolved_path.is_symlink(), f"{label}.artifacts[{index}]: artifact must not be a symlink")
+        path = resolve_repo_path(artifact["path"], f"{label}.artifacts[{index}]")
+        require(artifact_root in path.parents, f"{label}.artifacts[{index}]: artifact is outside isolated storage")
+        payload = path.read_bytes()
+        require(len(payload) == artifact["bytes"], f"{label}.artifacts[{index}]: artifact byte count is incorrect")
+        require(
+            re.fullmatch(r"[0-9a-f]{64}", artifact["sha256"]) is not None,
+            f"{label}.artifacts[{index}]: artifact digest format is invalid",
+        )
+        require(
+            hashlib.sha256(payload).hexdigest() == artifact["sha256"],
+            f"{label}.artifacts[{index}]: artifact digest is incorrect",
+        )
+
+    referenced_artifacts = {
+        item["artifact_path"]
+        for item in [*checks, *tool_failures]
+        if item["artifact_path"] is not None
+    }
+    require(referenced_artifacts == set(artifact_paths), f"{label}: artifact declarations and references disagree")
 
     if host_termination is not None:
         require(
@@ -247,6 +281,7 @@ def validate_worker_semantics(
 def parse_worker_response(raw: str, expected_role: str, label: str) -> dict[str, Any]:
     """Parse one whole worker response; mixed prose is deliberately not recoverable."""
     require(isinstance(raw, str) and raw.strip(), f"{label}: worker response is empty")
+    require(len(raw.encode("utf-8")) <= WORKER_RESULT_MAX_BYTES, f"{label}: response exceeds the byte budget")
     try:
         result = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -276,6 +311,7 @@ def resolve_worker_response_fallback(
         "changed_files": [],
         "checks": [],
         "tool_failures": [],
+        "artifacts": [],
         "blocker": {
             "code": "invalid_result",
             "message": f"worker result remained invalid after {len(errors)} attempt(s)",
@@ -770,6 +806,7 @@ def run_worker_contract_tests() -> tuple[int, int]:
             "termination": "timeout",
             "changed_files": [],
             "checks": [],
+            "artifacts": [],
             "blocker": {"code": "timeout", "message": "delegation timed out", "needs_user_input": False},
         }
     )
@@ -781,7 +818,15 @@ def run_worker_contract_tests() -> tuple[int, int]:
             "status": "failed",
             "termination": "tool_error",
             "checks": [],
-            "tool_failures": [{"tool": "exec", "operation": "test", "error": "process failed"}],
+            "tool_failures": [
+                {
+                    "tool": "exec",
+                    "operation": "test",
+                    "error": "process failed",
+                    "artifact_path": None,
+                }
+            ],
+            "artifacts": [],
             "blocker": {"code": "tool_error", "message": "test tool failed", "needs_user_input": False},
         }
     )
@@ -818,7 +863,12 @@ def run_worker_contract_tests() -> tuple[int, int]:
 
     completed_tool_failure = copy.deepcopy(completed_results[0])
     completed_tool_failure["tool_failures"] = [
-        {"tool": "exec", "operation": "test", "error": "process failed"}
+        {
+            "tool": "exec",
+            "operation": "test",
+            "error": "process failed",
+            "artifact_path": None,
+        }
     ]
     expect_worker_rejected(completed_tool_failure, "completed with tool failure")
 
@@ -863,7 +913,57 @@ def run_worker_contract_tests() -> tuple[int, int]:
     assertion_with_exit = copy.deepcopy(assertion)
     assertion_with_exit["checks"][0]["exit_code"] = 0
     expect_worker_rejected(assertion_with_exit, "assertion disguised as a command")
-    return 7, 12
+
+    oversized_evidence = copy.deepcopy(completed_results[0])
+    oversized_evidence["checks"][0]["evidence"] = "x" * 513
+    expect_worker_rejected(oversized_evidence, "oversized evidence excerpt")
+
+    oversized_envelope = copy.deepcopy(completed_results[0])
+    oversized_envelope["checks"] = []
+    for index in range(32):
+        item = copy.deepcopy(completed_results[0]["checks"][0])
+        item["criterion"] = f"check {index}"
+        item["check"] = "x" * 2048
+        item["evidence"] = "x" * 512
+        oversized_envelope["checks"].append(item)
+    expect_worker_rejected(oversized_envelope, "oversized worker envelope")
+
+    bad_digest = copy.deepcopy(completed_results[0])
+    bad_digest["artifacts"][0]["sha256"] = "0" * 64
+    expect_worker_rejected(bad_digest, "artifact digest mismatch")
+
+    missing_artifact = copy.deepcopy(completed_results[0])
+    missing_path = "evals/fixtures/artifacts/missing.log"
+    missing_artifact["checks"][0]["artifact_path"] = missing_path
+    missing_artifact["artifacts"][0]["path"] = missing_path
+    expect_worker_rejected(missing_artifact, "missing artifact")
+
+    undeclared_artifact = copy.deepcopy(completed_results[0])
+    undeclared_artifact["artifacts"] = []
+    expect_worker_rejected(undeclared_artifact, "referenced artifact was undeclared")
+
+    unreferenced_artifact = copy.deepcopy(completed_results[0])
+    unreferenced_artifact["checks"][0]["artifact_path"] = None
+    expect_worker_rejected(unreferenced_artifact, "declared artifact was unreferenced")
+
+    wrong_artifact_size = copy.deepcopy(completed_results[0])
+    wrong_artifact_size["artifacts"][0]["bytes"] += 1
+    expect_worker_rejected(wrong_artifact_size, "artifact byte count mismatch")
+
+    duplicate_artifact = copy.deepcopy(completed_results[0])
+    duplicate_artifact["artifacts"].append(copy.deepcopy(duplicate_artifact["artifacts"][0]))
+    expect_worker_rejected(duplicate_artifact, "duplicate artifact declaration")
+
+    escaped_artifact = copy.deepcopy(completed_results[0])
+    escaped_payload = (ROOT / "LICENSE").read_bytes()
+    escaped_artifact["checks"][0]["artifact_path"] = "LICENSE"
+    escaped_artifact["artifacts"][0] = {
+        "path": "LICENSE",
+        "bytes": len(escaped_payload),
+        "sha256": hashlib.sha256(escaped_payload).hexdigest(),
+    }
+    expect_worker_rejected(escaped_artifact, "artifact escaped isolated storage")
+    return 7, 21
 
 
 def run_worker_exit_transition_tests(cases: list[dict[str, Any]]) -> int:
@@ -909,6 +1009,7 @@ def run_worker_fallback_tests() -> tuple[int, int]:
     for label, responses in [
         ("mixed prose", [f"completed\n{raw}", f"```json\n{raw}\n```"]),
         ("malformed twice", ["{", "still not json"]),
+        ("oversized twice", ["x" * (WORKER_RESULT_MAX_BYTES + 1)] * 2),
     ]:
         result = resolve_worker_response_fallback(responses, "developer", label)
         validate_worker_semantics(result, "developer", label, "completed")

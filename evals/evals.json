@@ -66,6 +66,12 @@
       "prompt": "$run-review-loop implement docs/spec.md; the developer returned prose plus malformed JSON twice while claiming tests passed",
       "expected_output": "The controller never extracts JSON from the prose or infers completion. It permits one format-only retry without rerunning tools or edits; after the second invalid whole-object response it records invalid_result, exits worker_result_invalid, archives the partial state, and never starts blind review or gate.",
       "files": ["fixture repo: confirmed spec; schema-invalid worker responses"]
+    },
+    {
+      "id": 12,
+      "prompt": "$run-review-loop implement docs/spec.md; the developer tests passed but its final response contains a 200 KB test transcript",
+      "expected_output": "The controller does not add agents or paste the transcript into its context. It treats the oversized result as invalid and permits one format-only retry that may shorten fields or reference an artifact already written during the original work, but cannot rerun tools or write a new artifact. It accepts only a <=16 KiB schema-valid result with a <=512-character excerpt plus verified size and SHA-256 metadata; otherwise it exits worker_result_invalid.",
+      "files": ["fixture repo: confirmed spec; oversized completed worker response"]
     }
   ]
 }

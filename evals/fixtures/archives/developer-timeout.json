@@ -5,6 +5,7 @@
   "changed_files": [],
   "checks": [],
   "tool_failures": [],
+  "artifacts": [],
   "blocker": {
     "code": "timeout",
     "message": "delegation timed out",

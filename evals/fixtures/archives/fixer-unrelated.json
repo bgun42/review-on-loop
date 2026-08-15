@@ -10,9 +10,11 @@
       "check": "python3 -c \"from evals.fixtures.sample_project import fleet_total; assert fleet_total([1,2,3,4]) == 10\"",
       "exit_code": 0,
       "result": "pass",
-      "evidence": "exit 0: unrelated caller check passed"
+      "evidence": "exit 0: unrelated caller check passed",
+      "artifact_path": null
     }
   ],
   "tool_failures": [],
+  "artifacts": [],
   "blocker": null
 }

@@ -61,8 +61,29 @@ not a filesystem security claim.
 
 Keep worker responses compact. Return changed files, check command or assertion,
 result, short evidence, and blockers; omit reasoning traces and full tool transcripts.
-Store an essential long log as an artifact and return its path plus the relevant
-excerpt. The controller must never paste raw worker output into another role's brief.
+The controller must never paste raw worker output into another role's brief.
+
+Before delegation, create a unique artifact staging directory outside the target
+worktree and grant the worker access only to its target plus that directory. Keep the
+entire UTF-8 worker result at or below 16 KiB. Keep each evidence excerpt, tool error,
+and blocker message at or below 512 characters. The schema also caps checks at 32,
+tool failures at 16, and artifacts at 8.
+
+When essential output does not fit, write it to the issued staging directory and
+return only the short excerpt plus `artifact_path`. Declare every referenced artifact
+with its byte count and SHA-256 digest; one artifact may be at most 10 MiB. Reject a
+missing, oversized, digest-mismatched, undeclared, unreferenced, duplicate, symlinked,
+or staging-escaping path. Do not create another agent or split one result to handle
+large output.
+
+Redact credentials, personal data, and unrelated environment details before writing
+an artifact. Never preserve secret-bearing output merely because it is outside the
+conversation context.
+
+Do not read artifacts into controller context on a successful path. Inspect the
+smallest relevant slice only when a check failed, the compact fields contradict each
+other, or the user requests the detail. Never send artifact contents or paths to a
+reviewer or gate.
 
 ### Handle worker termination and results fail-closed
 
@@ -83,6 +104,12 @@ worker context. Give only the schema and validation error; do not rerun tools, e
 code, or start another implementation attempt. If the retry is invalid, record a
 synthetic `blocked` result with `termination: invalid_result` and exit as
 `worker_result_invalid`.
+
+Treat an oversized result as contract-invalid. The format-only retry may shorten
+fields and reference an artifact already written during the original work, but it must
+not run a tool, write a new artifact, repeat implementation, or delegate to another
+agent. If essential evidence exists only in the oversized response, stop as
+`worker_result_invalid` rather than discard it and claim completion.
 
 If the host cannot parse and validate the whole object reliably, do not use a
 best-effort textual fallback; record `invalid_result` and stop.
@@ -286,6 +313,11 @@ goal, spec path, per-iteration verdict/counts and review paths, acceptance resul
 worker-result paths, blind mode, any authorized relaxation, gate-result paths and final
 summary, and exit reason. Write archives only after the run exits so no active reviewer can consume
 them. Do not copy the specification into the archive.
+
+Copy referenced staging artifacts into that run's `artifacts/` directory, rewrite the
+archived worker-result paths to those copies, and revalidate byte counts and digests.
+Do not archive unreferenced files or retain the staging directory after a verified
+copy. Artifact content remains excluded from reports and later role briefs.
 
 Write `run.json` to conform to `../../schemas/run-result.schema.json`, using the exact
 exit identifiers `goal_met`, `iteration_cap`, `no_progress`, and

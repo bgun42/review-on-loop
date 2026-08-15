@@ -30,6 +30,12 @@ check passes with a valid exit code, `tool_failures` is empty, and `blocker` is 
 Blocked or failed results are archived but never advance to review or gate. This makes
 JSON parse/schema errors an explicit stop condition rather than a false success.
 
+The complete UTF-8 worker envelope is limited to 16 KiB. Evidence excerpts, tool
+errors, and blocker messages are limited to 512 characters. Essential longer output
+is stored outside the target worktree and referenced as an artifact with a verified
+byte count and SHA-256 digest. The controller does not load successful-path artifacts
+or pass them to reviewers and gates.
+
 ## Zero-cost controller contract regression
 
 Run the dependency-free contract suite before publishing the plugin or changing the
@@ -50,8 +56,8 @@ gate-failure bypass, holdout duplication, worker-role mismatch, host/body termin
 contradictions, and substitution of unrelated fixer checks.
 
 The same run exercises three worker termination exits, accepts seven valid
-completed/blocked/failed worker envelopes, rejects twelve contradictory or
-schema-invalid worker-result mutations, and checks five whole-response JSON fallback
+completed/blocked/failed worker envelopes, rejects twenty-one contradictory or
+schema-invalid worker-result mutations, and checks six whole-response JSON fallback
 paths including the single format-only retry and fail-closed second failure.
 
 This suite validates controller state, recorded identities, allowlisted fields, schemas,

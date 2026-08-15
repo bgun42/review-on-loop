@@ -1,6 +1,6 @@
 {
   "name": "veriloop",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Review agent-produced code changes and run a strict-blind, specification-grounded develop-review-fix loop.",
   "author": {
     "name": "bgun42",

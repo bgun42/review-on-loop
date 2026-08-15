@@ -11,6 +11,7 @@
     "changed_files",
     "checks",
     "tool_failures",
+    "artifacts",
     "blocker"
   ],
   "properties": {
@@ -35,15 +36,23 @@
     },
     "changed_files": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "maxItems": 128,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
     },
     "checks": {
       "type": "array",
+      "maxItems": 32,
       "items": { "$ref": "#/$defs/check" }
     },
     "tool_failures": {
       "type": "array",
+      "maxItems": 16,
       "items": { "$ref": "#/$defs/tool_failure" }
+    },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/artifact" }
     },
     "blocker": {
       "type": ["object", "null"],
@@ -64,7 +73,7 @@
             "other"
           ]
         },
-        "message": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 512 },
         "needs_user_input": { "type": "boolean" }
       }
     }
@@ -73,30 +82,58 @@
     "check": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "criterion", "check", "exit_code", "result", "evidence"],
+      "required": [
+        "kind",
+        "criterion",
+        "check",
+        "exit_code",
+        "result",
+        "evidence",
+        "artifact_path"
+      ],
       "properties": {
         "kind": {
           "type": "string",
           "enum": ["command", "assertion"]
         },
-        "criterion": { "type": "string", "minLength": 1 },
-        "check": { "type": "string", "minLength": 1 },
+        "criterion": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "check": { "type": "string", "minLength": 1, "maxLength": 2048 },
         "exit_code": { "type": ["integer", "null"] },
         "result": {
           "type": "string",
           "enum": ["pass", "fail", "blocked"]
         },
-        "evidence": { "type": "string", "minLength": 1 }
+        "evidence": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "artifact_path": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 512
+        }
       }
     },
     "tool_failure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tool", "operation", "error"],
+      "required": ["tool", "operation", "error", "artifact_path"],
       "properties": {
-        "tool": { "type": "string", "minLength": 1 },
-        "operation": { "type": "string", "minLength": 1 },
-        "error": { "type": "string", "minLength": 1 }
+        "tool": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "operation": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "error": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "artifact_path": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "bytes", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 10485760 },
+        "sha256": { "type": "string", "minLength": 64, "maxLength": 64 }
       }
     }
   }

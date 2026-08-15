@@ -8,9 +8,11 @@
     {
       "tool": "exec",
       "operation": "run required check",
-      "error": "process failed"
+      "error": "process failed",
+      "artifact_path": null
     }
   ],
+  "artifacts": [],
   "blocker": {
     "code": "tool_error",
     "message": "required check tool failed",

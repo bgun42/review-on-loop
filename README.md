@@ -203,14 +203,14 @@ No configuration is required. The plugin discovers the repository's conventions 
 |---|---|
 | **Shared workflow core** | Codex skills and Claude Code slash commands route to the same specification, review, repair, and gate instructions so both platforms follow one behavior contract. |
 | **Role-isolated handoffs** | Developer, fixer, reviewer, gate, and controller receive only the inputs needed for their responsibility. Developer and fixer completion states explicitly distinguish success from timeout, cancellation, context limits, tool failures, and invalid results. |
-| **Schema-constrained results** | Worker, review, gate, and archived run outputs conform to the JSON Schemas under `schemas/`. JSON is used as a typed result envelope, not extracted from prose: native structured output is preferred, while an invalid whole-object fallback gets one format-only retry and then blocks the run. |
+| **Schema-constrained results** | Worker, review, gate, and archived run outputs conform to the JSON Schemas under `schemas/`. Worker envelopes are capped at 16 KiB; long logs stay in verified artifacts and are not loaded into controller or reviewer context on successful paths. |
 | **Controller contract regression** | A dependency-free local suite executes fixture assertions and verifies strict/reduced transitions, fresh reviewer identities, final-revision acceptance, frozen snapshots, archive consistency, no-progress stops, and gate-failure recovery before a live model run. |
 
 ```bash
 python3 evals/run_contract_evals.py
 ```
 
-The suite covers three primary controller traces, one explicitly authorized reduced-mode transition, three worker termination transitions, 24 workflow mutations, seven valid worker envelopes, 12 worker-result mutations, and five raw-JSON fallback paths without API calls. It validates orchestration records and executable evidence; actual model-context isolation and subjective review quality still require a live forward test with fresh subagents.
+The suite covers three primary controller traces, one explicitly authorized reduced-mode transition, three worker termination transitions, 24 workflow mutations, seven valid worker envelopes, 21 worker-result mutations, and six raw-JSON fallback paths without API calls. It validates orchestration records and executable evidence; actual model-context isolation and subjective review quality still require a live forward test with fresh subagents.
 
 Every review report ends with a machine-readable JSON block containing `verdict` and `findings[]`. See [docs/ci.md](docs/ci.md) for schema details, the local contract suite, a GitHub Actions gate, and a Claude Code Stop-hook recipe.
 
