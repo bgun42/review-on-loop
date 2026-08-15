@@ -1,0 +1,18 @@
+{
+  "role": "developer",
+  "status": "completed",
+  "termination": "completed",
+  "changed_files": ["evals/fixtures/sample_project.py"],
+  "checks": [
+    {
+      "kind": "command",
+      "criterion": "Known callers still return totals",
+      "check": "python3 -c \"from evals.fixtures.sample_project import fleet_total; assert fleet_total([1,2,3,4]) == 10\"",
+      "exit_code": 0,
+      "result": "pass",
+      "evidence": "exit 0: known caller totals matched"
+    }
+  ],
+  "tool_failures": [],
+  "blocker": null
+}

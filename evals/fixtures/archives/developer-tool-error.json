@@ -1,0 +1,19 @@
+{
+  "role": "developer",
+  "status": "failed",
+  "termination": "tool_error",
+  "changed_files": [],
+  "checks": [],
+  "tool_failures": [
+    {
+      "tool": "exec",
+      "operation": "run required check",
+      "error": "process failed"
+    }
+  ],
+  "blocker": {
+    "code": "tool_error",
+    "message": "required check tool failed",
+    "needs_user_input": false
+  }
+}

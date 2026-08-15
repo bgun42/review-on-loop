@@ -1,0 +1,13 @@
+{
+  "role": "developer",
+  "status": "blocked",
+  "termination": "invalid_result",
+  "changed_files": [],
+  "checks": [],
+  "tool_failures": [],
+  "blocker": {
+    "code": "invalid_result",
+    "message": "format retry was schema-invalid",
+    "needs_user_input": false
+  }
+}

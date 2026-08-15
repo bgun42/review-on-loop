@@ -19,7 +19,9 @@
         },
         {
           "type": "developer_change",
-          "actor": "developer-clean"
+          "actor": "developer-clean",
+          "transport": "completed",
+          "required_checks": ["The formatter preserves ISO dates"]
         },
         {
           "type": "acceptance",
@@ -124,6 +126,9 @@
             "evidence": "exit 0: ISO date preserved"
           }
         ],
+        "worker_files": [
+          "evals/fixtures/archives/developer-clean.json"
+        ],
         "gate_files": [
           "evals/fixtures/archives/clean-gate.json"
         ],
@@ -153,7 +158,9 @@
         },
         {
           "type": "developer_change",
-          "actor": "developer-seeded"
+          "actor": "developer-seeded",
+          "transport": "completed",
+          "required_checks": ["Known callers still return totals"]
         },
         {
           "type": "acceptance",
@@ -190,6 +197,8 @@
         {
           "type": "fixer_change",
           "actor": "fixer-seeded-1",
+          "transport": "completed",
+          "required_checks": ["Empty fleet triggers one query per ship"],
           "failure_packet_keys": [
             "title",
             "file",
@@ -327,6 +336,10 @@
             "evidence": "exit 0: query count stayed at one"
           }
         ],
+        "worker_files": [
+          "evals/fixtures/archives/developer-fleet.json",
+          "evals/fixtures/archives/fixer-fleet.json"
+        ],
         "gate_files": [
           "evals/fixtures/archives/fleet-gate.json"
         ],
@@ -373,6 +386,7 @@
         },
         "iterations": [],
         "acceptance": [],
+        "worker_files": [],
         "gate_files": [],
         "gate": {
           "status": "not_run",

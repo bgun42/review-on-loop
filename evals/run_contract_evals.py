@@ -32,8 +32,8 @@ MUTATIONS = {"developer_change", "fixer_change"}
 EVENT_KEYS = {
     "preflight": {"type", "result", "unsupported"},
     "authorization": {"type", "decision", "reason", "authorization"},
-    "developer_change": {"type", "actor"},
-    "fixer_change": {"type", "actor", "failure_packet_keys"},
+    "developer_change": {"type", "actor", "transport", "required_checks"},
+    "fixer_change": {"type", "actor", "transport", "required_checks", "failure_packet_keys"},
     "acceptance": {"type", "criterion", "check", "result", "evidence"},
     "review": {"type", "actor", "brief_keys", "result"},
     "snapshot": {"type", "value"},
@@ -49,6 +49,10 @@ SKILL_CONTRACTS = {
     "snapshot invalidation": r"Any target change invalidates the gate",
     "no-progress stop": r"failed count did not decrease from\s+the previous iteration",
     "explicit reduced authorization": r"Ask whether the user authorizes relaxed review \*\*for this run only\*\*",
+    "worker transport before body": r"Inspect the host delegation/tool status before reading the worker body",
+    "whole-object JSON parsing": r"Never extract JSON from mixed prose with a regular expression",
+    "single format retry": r"allow one format-only retry in the same\s+worker context",
+    "completed worker semantics": r"`completed` requires `termination: completed`",
 }
 
 
@@ -176,6 +180,136 @@ def validate_review_archive(relative_path: str, result: dict[str, Any], label: s
 def validate_gate_archive(relative_path: str, result: dict[str, Any], label: str) -> None:
     archived_result = load_json(resolve_repo_path(relative_path, label))
     require(archived_result == result, f"{label}: gate archive disagrees with trace")
+
+
+def validate_worker_semantics(
+    result: dict[str, Any],
+    expected_role: str | None,
+    label: str,
+    host_termination: str | None = None,
+) -> None:
+    validate_result("worker", result)
+    if expected_role is not None:
+        require(result["role"] == expected_role, f"{label}: worker role disagrees with controller event")
+
+    status = result["status"]
+    termination = result["termination"]
+    checks = result["checks"]
+    tool_failures = result["tool_failures"]
+    blocker = result["blocker"]
+
+    if host_termination is not None:
+        require(
+            host_termination in {"completed", "tool_error", "timeout", "cancelled", "context_limit"},
+            f"{label}: unsupported host termination",
+        )
+        if host_termination == "completed":
+            require(termination in {"completed", "invalid_result"}, f"{label}: worker termination contradicts normal transport")
+        else:
+            require(termination == host_termination, f"{label}: worker body contradicts host termination")
+
+    for index, check in enumerate(checks):
+        exit_code = check["exit_code"]
+        if check["kind"] == "command":
+            require(exit_code is not None, f"{label}.checks[{index}]: command check lacks an exit code")
+            if check["result"] == "pass":
+                require(exit_code == 0, f"{label}.checks[{index}]: pass has a nonzero exit code")
+            if check["result"] == "fail":
+                require(exit_code != 0, f"{label}.checks[{index}]: fail has a zero exit code")
+        else:
+            require(exit_code is None, f"{label}.checks[{index}]: observable assertion has a command exit code")
+
+    if status == "completed":
+        require(termination == "completed", f"{label}: completed worker has non-completed termination")
+        require(blocker is None, f"{label}: completed worker has a blocker")
+        require(not tool_failures, f"{label}: completed worker has tool failures")
+        require(checks and all(item["result"] == "pass" for item in checks), f"{label}: completed worker has non-passing checks")
+    else:
+        require(blocker is not None, f"{label}: blocked or failed worker lacks a blocker")
+
+    if termination != "completed":
+        require(status != "completed", f"{label}: abnormal transport was treated as completed")
+    abnormal = {
+        "tool_error": ("failed", "tool_error"),
+        "timeout": ("blocked", "timeout"),
+        "cancelled": ("blocked", "cancelled"),
+        "context_limit": ("blocked", "context_limit"),
+        "invalid_result": ("blocked", "invalid_result"),
+    }
+    if termination in abnormal:
+        expected_status, expected_blocker = abnormal[termination]
+        require(status == expected_status, f"{label}: status contradicts abnormal termination")
+        require(blocker and blocker["code"] == expected_blocker, f"{label}: blocker contradicts termination")
+    if termination == "tool_error":
+        require(tool_failures, f"{label}: tool error lacks tool failure evidence")
+
+
+def parse_worker_response(raw: str, expected_role: str, label: str) -> dict[str, Any]:
+    """Parse one whole worker response; mixed prose is deliberately not recoverable."""
+    require(isinstance(raw, str) and raw.strip(), f"{label}: worker response is empty")
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise EvalFailure(f"{label}: response is not one raw JSON object: {error}") from error
+    require(isinstance(result, dict), f"{label}: worker response is not a JSON object")
+    validate_worker_semantics(result, expected_role, label, "completed")
+    return result
+
+
+def resolve_worker_response_fallback(
+    responses: list[str],
+    expected_role: str,
+    label: str,
+) -> dict[str, Any]:
+    """Model the raw-JSON fallback and its single format-only retry."""
+    require(1 <= len(responses) <= 2, f"{label}: fallback allows at most one retry")
+    errors: list[str] = []
+    for index, raw in enumerate(responses, start=1):
+        try:
+            return parse_worker_response(raw, expected_role, f"{label}.attempt[{index}]")
+        except EvalFailure as error:
+            errors.append(str(error))
+    return {
+        "role": expected_role,
+        "status": "blocked",
+        "termination": "invalid_result",
+        "changed_files": [],
+        "checks": [],
+        "tool_failures": [],
+        "blocker": {
+            "code": "invalid_result",
+            "message": f"worker result remained invalid after {len(errors)} attempt(s)",
+            "needs_user_input": False,
+        },
+    }
+
+
+def validate_worker_archive(
+    relative_path: str,
+    expected_role: str,
+    required_module: str,
+    required_symbols: list[str],
+    target_files: list[str],
+    required_checks: list[str],
+    host_termination: str,
+    label: str,
+) -> dict[str, Any]:
+    result = load_json(resolve_repo_path(relative_path, label))
+    validate_worker_semantics(result, expected_role, label, host_termination)
+    require(set(result["changed_files"]).issubset(target_files), f"{label}: worker changed files outside the fixture target")
+    if result["status"] == "completed":
+        require(result["changed_files"], f"{label}: completed change event has no changed files")
+        require({item["criterion"] for item in result["checks"]} == set(required_checks), f"{label}: worker checks do not match assigned checks")
+        for index, check in enumerate(result["checks"]):
+            execute_fixture_check(
+                check["check"],
+                check["result"],
+                check["evidence"],
+                required_module,
+                required_symbols,
+                f"{label}.checks[{index}]",
+            )
+    return result
 
 
 def validate_review_semantics(result: dict[str, Any], label: str) -> None:
@@ -332,13 +466,19 @@ def validate_case(case: dict[str, Any]) -> None:
     require(preflight.get("result") == expected_preflight, f"{case_id}: incorrect preflight result")
     require(sorted(preflight.get("unsupported", [])) == unsupported, f"{case_id}: unsupported capabilities mismatch")
 
-    validate_result("run", case["run_result"])
+    run = case["run_result"]
+    validate_result("run", run)
     seen_agents: set[str] = set()
     reviews: list[dict[str, Any]] = []
     acceptances: list[dict[str, Any]] = []
+    acceptance_revisions: list[tuple[int, str]] = []
+    developer_assignments: list[tuple[int, set[str]]] = []
+    worker_index = 0
+    required_worker_exit: str | None = None
     latest_acceptance: dict[str, tuple[int, str]] = {}
     latest_review: str | None = None
     pending_fix_source: str | None = None
+    pending_fix_checks: set[str] | None = None
     authorization_event: dict[str, Any] | None = None
     can_run = not unsupported
     expected_independence = "strict"
@@ -374,6 +514,8 @@ def validate_case(case: dict[str, Any]) -> None:
             require(event_type in {"fixer_change", "exit"}, f"{label}: {pending_fix_source} failure was bypassed")
         if detected_no_progress:
             require(event_type == "exit", f"{label}: work continued after no progress was detected")
+        if required_worker_exit is not None:
+            require(event_type == "exit", f"{label}: work continued after incomplete worker")
 
         if event_type == "authorization":
             require(unsupported and authorization_event is None, f"{label}: authorization is unexpected or repeated")
@@ -388,15 +530,46 @@ def validate_case(case: dict[str, Any]) -> None:
             require(can_run, f"{label}: mutation is forbidden without blind capability or authorization")
             claim_actor(event, label)
             if event_type == "fixer_change":
+                role = "fixer"
                 require(pending_fix_source is not None, f"{label}: fixer ran without a failed review or gate")
                 require(
                     set(event.get("failure_packet_keys", [])) == {"title", "file", "line", "evidence"},
                     f"{label}: fixer packet leaked or omitted context",
                 )
-                pending_fix_source = None
+                require(
+                    set(event["required_checks"]) == pending_fix_checks,
+                    f"{label}: fixer checks do not match the failed findings or probes",
+                )
             else:
+                role = "developer"
                 require(latest_review is None, f"{label}: developer ran after review started")
+                require(event["required_checks"], f"{label}: developer has no assigned acceptance checks")
+
+            require(worker_index < len(run["worker_files"]), f"{label}: worker result archive is missing")
+            worker_result = validate_worker_archive(
+                run["worker_files"][worker_index],
+                role,
+                required_module,
+                required_symbols,
+                case["target_files"],
+                event["required_checks"],
+                event["transport"],
+                f"{case_id}.workers[{worker_index + 1}]",
+            )
+            worker_index += 1
+            if worker_result["status"] == "completed":
+                if role == "fixer":
+                    pending_fix_source = None
+                    pending_fix_checks = None
+            elif worker_result["termination"] == "invalid_result":
+                required_worker_exit = "worker_result_invalid"
+            elif worker_result["status"] == "blocked":
+                required_worker_exit = "worker_blocked"
+            else:
+                required_worker_exit = "worker_failed"
             revision += 1
+            if role == "developer" and worker_result["status"] == "completed":
+                developer_assignments.append((revision, set(event["required_checks"])))
             reviewed_revision = None
             snapshot_dirty = snapshot is not None
 
@@ -410,6 +583,7 @@ def validate_case(case: dict[str, Any]) -> None:
                 label,
             )
             acceptances.append(event)
+            acceptance_revisions.append((revision, event["criterion"]))
             latest_acceptance[event["criterion"]] = (revision, event["result"])
 
         elif event_type == "review":
@@ -431,6 +605,7 @@ def validate_case(case: dict[str, Any]) -> None:
             latest_review = event["result"]["verdict"]
             reviewed_revision = revision
             pending_fix_source = "review" if latest_review == "fail" else None
+            pending_fix_checks = {item["title"] for item in failed_findings} or None
 
         elif event_type == "snapshot":
             require(latest_review in {"pass", "pass_with_warnings"}, f"{label}: snapshot preceded a passing review")
@@ -464,13 +639,24 @@ def validate_case(case: dict[str, Any]) -> None:
             gate_revision = revision
             gate_count += 1
             pending_fix_source = "gate" if gate_status == "fail" else None
+            if gate_status == "fail":
+                failed_probe_checks = {
+                    f"gate probe: {probe['category']}"
+                    for probe in event["result"]["probes"]
+                    if probe["result"] == "fail"
+                }
+                pending_fix_checks = {
+                    item["title"] for item in event["result"]["findings"]
+                } | failed_probe_checks
+                require(pending_fix_checks, f"{label}: failed gate has no fixer check source")
+            else:
+                pending_fix_checks = None
 
         elif event_type == "exit":
             require(index == len(events) - 1, f"{label}: exit must be the last event")
             exit_reason = event.get("reason")
 
     require(exit_reason is not None, f"{case_id}: missing exit event")
-    run = case["run_result"]
     require(run["exit_reason"] == exit_reason, f"{case_id}: run exit reason disagrees with trace")
     require(len(run["iterations"]) == len(reviews), f"{case_id}: archived iteration count disagrees with trace")
     for index, (archived, review) in enumerate(zip(run["iterations"], reviews), start=1):
@@ -489,6 +675,17 @@ def validate_case(case: dict[str, Any]) -> None:
         )
     trace_acceptance = [{key: value for key, value in item.items() if key != "type"} for item in acceptances]
     require(run["acceptance"] == trace_acceptance, f"{case_id}: archived acceptance evidence disagrees with trace")
+    for assignment_revision, assigned_checks in developer_assignments:
+        executed = {
+            criterion
+            for acceptance_revision, criterion in acceptance_revisions
+            if acceptance_revision == assignment_revision
+        }
+        require(
+            assigned_checks.issubset(executed),
+            f"{case_id}: developer checks were not rerun as acceptance on its revision",
+        )
+    require(worker_index == len(run["worker_files"]), f"{case_id}: worker artifacts disagree with controller events")
     require(run["gate"]["status"] == gate_status, f"{case_id}: archived gate status disagrees with trace")
     if gate_result is not None:
         require(run["gate"]["snapshot"] == gate_result["snapshot"], f"{case_id}: archived snapshot disagrees with gate")
@@ -523,6 +720,11 @@ def validate_case(case: dict[str, Any]) -> None:
     if exit_reason == "blind_context_unavailable":
         require(unsupported and not can_run, f"{case_id}: blind exit without an unresolved capability failure")
         require(not reviews and gate_status == "not_run", f"{case_id}: blind exit performed review work")
+    if exit_reason in {"worker_blocked", "worker_failed", "worker_result_invalid"}:
+        require(exit_reason == required_worker_exit, f"{case_id}: worker exit reason contradicts worker result")
+        require(gate_status != "hold", f"{case_id}: worker exit cannot follow a held gate")
+    if required_worker_exit is not None:
+        require(exit_reason == required_worker_exit, f"{case_id}: incomplete worker did not control run exit")
 
 
 def validate_skill_contracts() -> None:
@@ -539,6 +741,189 @@ def expect_rejected(case: dict[str, Any], mutation: str) -> None:
     raise EvalFailure(f"guard mutation was not rejected: {mutation}")
 
 
+def expect_worker_rejected(
+    result: dict[str, Any],
+    mutation: str,
+    host_termination: str | None = None,
+) -> None:
+    try:
+        validate_worker_semantics(result, None, mutation, host_termination)
+    except EvalFailure:
+        return
+    raise EvalFailure(f"worker guard mutation was not rejected: {mutation}")
+
+
+def run_worker_contract_tests() -> tuple[int, int]:
+    paths = [
+        ROOT / "evals/fixtures/archives/developer-clean.json",
+        ROOT / "evals/fixtures/archives/developer-fleet.json",
+        ROOT / "evals/fixtures/archives/fixer-fleet.json",
+    ]
+    completed_results = [load_json(path) for path in paths]
+    for index, result in enumerate(completed_results, start=1):
+        validate_worker_semantics(result, result["role"], f"worker-positive[{index}]", "completed")
+
+    blocked = copy.deepcopy(completed_results[0])
+    blocked.update(
+        {
+            "status": "blocked",
+            "termination": "timeout",
+            "changed_files": [],
+            "checks": [],
+            "blocker": {"code": "timeout", "message": "delegation timed out", "needs_user_input": False},
+        }
+    )
+    validate_worker_semantics(blocked, "developer", "worker-positive-blocked", "timeout")
+
+    failed = copy.deepcopy(completed_results[0])
+    failed.update(
+        {
+            "status": "failed",
+            "termination": "tool_error",
+            "checks": [],
+            "tool_failures": [{"tool": "exec", "operation": "test", "error": "process failed"}],
+            "blocker": {"code": "tool_error", "message": "test tool failed", "needs_user_input": False},
+        }
+    )
+    validate_worker_semantics(failed, "developer", "worker-positive-failed", "tool_error")
+
+    invalid = copy.deepcopy(blocked)
+    invalid["termination"] = "invalid_result"
+    invalid["blocker"] = {
+        "code": "invalid_result",
+        "message": "format retry was schema-invalid",
+        "needs_user_input": False,
+    }
+    validate_worker_semantics(invalid, "developer", "worker-positive-invalid", "completed")
+
+    assertion = copy.deepcopy(completed_results[0])
+    assertion["checks"][0].update(
+        {
+            "kind": "assertion",
+            "check": "documentation states that ISO dates are preserved",
+            "exit_code": None,
+            "evidence": "observed in the confirmed documentation",
+        }
+    )
+    validate_worker_semantics(assertion, "developer", "worker-positive-assertion", "completed")
+
+    completed_with_failure = copy.deepcopy(completed_results[0])
+    completed_with_failure["checks"][0]["result"] = "fail"
+    completed_with_failure["checks"][0]["exit_code"] = 1
+    expect_worker_rejected(completed_with_failure, "completed with failed check")
+
+    completed_timeout = copy.deepcopy(completed_results[0])
+    completed_timeout["termination"] = "timeout"
+    expect_worker_rejected(completed_timeout, "timeout treated as completed")
+
+    completed_tool_failure = copy.deepcopy(completed_results[0])
+    completed_tool_failure["tool_failures"] = [
+        {"tool": "exec", "operation": "test", "error": "process failed"}
+    ]
+    expect_worker_rejected(completed_tool_failure, "completed with tool failure")
+
+    blocked_without_reason = copy.deepcopy(blocked)
+    blocked_without_reason["blocker"] = None
+    expect_worker_rejected(blocked_without_reason, "blocked without blocker")
+
+    false_pass = copy.deepcopy(completed_results[0])
+    false_pass["checks"][0]["exit_code"] = 1
+    expect_worker_rejected(false_pass, "pass with nonzero exit code")
+
+    missing_exit = copy.deepcopy(completed_results[0])
+    missing_exit["checks"][0]["exit_code"] = None
+    expect_worker_rejected(missing_exit, "command pass with missing exit code")
+
+    tool_error_without_evidence = copy.deepcopy(failed)
+    tool_error_without_evidence["tool_failures"] = []
+    expect_worker_rejected(tool_error_without_evidence, "tool error without evidence")
+
+    extra_field = copy.deepcopy(completed_results[0])
+    extra_field["reasoning"] = "should not be accepted"
+    expect_worker_rejected(extra_field, "schema accepted an extra field")
+
+    host_timeout_with_completed_body = copy.deepcopy(completed_results[0])
+    expect_worker_rejected(
+        host_timeout_with_completed_body,
+        "host timeout paired with completed body",
+        "timeout",
+    )
+
+    body_timeout_after_normal_return = copy.deepcopy(blocked)
+    expect_worker_rejected(
+        body_timeout_after_normal_return,
+        "normal host return paired with timeout body",
+        "completed",
+    )
+
+    mismatched_blocker = copy.deepcopy(blocked)
+    mismatched_blocker["blocker"]["code"] = "cancelled"
+    expect_worker_rejected(mismatched_blocker, "timeout paired with cancelled blocker", "timeout")
+
+    assertion_with_exit = copy.deepcopy(assertion)
+    assertion_with_exit["checks"][0]["exit_code"] = 0
+    expect_worker_rejected(assertion_with_exit, "assertion disguised as a command")
+    return 7, 12
+
+
+def run_worker_exit_transition_tests(cases: list[dict[str, Any]]) -> int:
+    base = next(case for case in cases if case["id"] == "clean-diff-held-by-gate")
+    scenarios = [
+        ("timeout", "evals/fixtures/archives/developer-timeout.json", "worker_blocked"),
+        ("tool_error", "evals/fixtures/archives/developer-tool-error.json", "worker_failed"),
+        ("completed", "evals/fixtures/archives/developer-invalid.json", "worker_result_invalid"),
+    ]
+    for transport, worker_file, exit_reason in scenarios:
+        case = copy.deepcopy(base)
+        case["id"] = f"worker-exit-{exit_reason}"
+        developer = copy.deepcopy(next(event for event in case["events"] if event["type"] == "developer_change"))
+        developer["transport"] = transport
+        case["events"] = [case["events"][0], developer, {"type": "exit", "reason": exit_reason}]
+        case["run_result"]["exit_reason"] = exit_reason
+        case["run_result"]["iterations"] = []
+        case["run_result"]["acceptance"] = []
+        case["run_result"]["worker_files"] = [worker_file]
+        case["run_result"]["gate_files"] = []
+        case["run_result"]["gate"] = {
+            "status": "not_run",
+            "snapshot": None,
+            "independence": None,
+        }
+        validate_case(case)
+    return len(scenarios)
+
+
+def run_worker_fallback_tests() -> tuple[int, int]:
+    completed = load_json(ROOT / "evals/fixtures/archives/developer-clean.json")
+    raw = json.dumps(completed)
+    require(
+        resolve_worker_response_fallback([raw], "developer", "fallback-valid") == completed,
+        "fallback changed a valid whole-object response",
+    )
+    require(
+        resolve_worker_response_fallback(["not json", raw], "developer", "fallback-retry") == completed,
+        "fallback did not accept the one allowed format retry",
+    )
+
+    rejected = 0
+    for label, responses in [
+        ("mixed prose", [f"completed\n{raw}", f"```json\n{raw}\n```"]),
+        ("malformed twice", ["{", "still not json"]),
+    ]:
+        result = resolve_worker_response_fallback(responses, "developer", label)
+        validate_worker_semantics(result, "developer", label, "completed")
+        require(result["termination"] == "invalid_result", f"{label}: invalid fallback did not fail closed")
+        rejected += 1
+
+    try:
+        resolve_worker_response_fallback(["{}", "{}", "{}"], "developer", "too-many-retries")
+    except EvalFailure:
+        rejected += 1
+    else:
+        raise EvalFailure("fallback accepted more than one retry")
+    return 2, rejected
+
+
 def run_guard_tests(cases: list[dict[str, Any]]) -> int:
     by_id = {case["id"]: case for case in cases}
 
@@ -552,8 +937,26 @@ def run_guard_tests(cases: list[dict[str, Any]]) -> int:
     fixer["failure_packet_keys"].append("passed_probes")
     expect_rejected(leaked, "fixer received passed probes")
 
+    substituted_fixer_check = copy.deepcopy(by_id["failed-review-fixed-by-fresh-reviewer"])
+    substituted_fixer = next(
+        event for event in substituted_fixer_check["events"] if event["type"] == "fixer_change"
+    )
+    substituted_fixer["required_checks"] = ["Known callers still return totals"]
+    substituted_fixer_check["run_result"]["worker_files"][1] = (
+        "evals/fixtures/archives/fixer-unrelated.json"
+    )
+    expect_rejected(substituted_fixer_check, "fixer substituted an unrelated passing check")
+
     changed = copy.deepcopy(by_id["blind-context-unavailable"])
-    changed["events"].insert(1, {"type": "developer_change", "actor": "developer-1"})
+    changed["events"].insert(
+        1,
+        {
+            "type": "developer_change",
+            "actor": "developer-1",
+            "transport": "completed",
+            "required_checks": ["The formatter preserves ISO dates"],
+        },
+    )
     expect_rejected(changed, "code changed after failed preflight")
 
     fabricated = copy.deepcopy(by_id["clean-diff-held-by-gate"])
@@ -563,11 +966,27 @@ def run_guard_tests(cases: list[dict[str, Any]]) -> int:
 
     unreviewed = copy.deepcopy(by_id["clean-diff-held-by-gate"])
     snapshot_index = next(index for index, event in enumerate(unreviewed["events"]) if event["type"] == "snapshot")
-    unreviewed["events"].insert(snapshot_index, {"type": "developer_change", "actor": "developer-after-review"})
+    unreviewed["events"].insert(
+        snapshot_index,
+        {
+            "type": "developer_change",
+            "actor": "developer-after-review",
+            "transport": "completed",
+            "required_checks": ["The formatter preserves ISO dates"],
+        },
+    )
     expect_rejected(unreviewed, "target changed after passing review")
 
     post_gate = copy.deepcopy(by_id["clean-diff-held-by-gate"])
-    post_gate["events"].insert(-1, {"type": "developer_change", "actor": "developer-after-gate"})
+    post_gate["events"].insert(
+        -1,
+        {
+            "type": "developer_change",
+            "actor": "developer-after-gate",
+            "transport": "completed",
+            "required_checks": ["The formatter preserves ISO dates"],
+        },
+    )
     expect_rejected(post_gate, "target changed after held gate")
 
     hidden_context = copy.deepcopy(by_id["clean-diff-held-by-gate"])
@@ -678,7 +1097,23 @@ def run_guard_tests(cases: list[dict[str, Any]]) -> int:
     string_capability = copy.deepcopy(by_id["clean-diff-held-by-gate"])
     string_capability["capabilities"]["clean_context"] = "false"
     expect_rejected(string_capability, "non-boolean capability")
-    return 20
+
+    host_body_mismatch = copy.deepcopy(by_id["clean-diff-held-by-gate"])
+    next(event for event in host_body_mismatch["events"] if event["type"] == "developer_change")[
+        "transport"
+    ] = "timeout"
+    expect_rejected(host_body_mismatch, "host timeout contradicted completed worker artifact")
+
+    extra_worker_archive = copy.deepcopy(by_id["clean-diff-held-by-gate"])
+    extra_worker_archive["run_result"]["worker_files"].append(
+        "evals/fixtures/archives/developer-clean.json"
+    )
+    expect_rejected(extra_worker_archive, "unmatched worker archive")
+
+    wrong_worker_role = copy.deepcopy(by_id["clean-diff-held-by-gate"])
+    wrong_worker_role["run_result"]["worker_files"][0] = "evals/fixtures/archives/fixer-fleet.json"
+    expect_rejected(wrong_worker_role, "worker role contradicted controller event")
+    return 24
 
 
 def run_reduced_transition_test(cases: list[dict[str, Any]]) -> int:
@@ -723,10 +1158,15 @@ def main() -> int:
         print(f"PASS {case['id']}")
 
     transition_count = run_reduced_transition_test(cases)
+    worker_exit_count = run_worker_exit_transition_tests(cases)
     guard_count = 0 if args.no_guard_tests else run_guard_tests(cases)
+    worker_positive_count, worker_guard_count = run_worker_contract_tests()
+    fallback_positive_count, fallback_guard_count = run_worker_fallback_tests()
     print(
         f"\n{len(cases)} contract traces passed; {transition_count} authorized reduced transition passed; "
-        f"{guard_count} guard mutations rejected."
+        f"{worker_exit_count} worker-exit transitions passed; {guard_count} guard mutations rejected; "
+        f"{worker_positive_count} worker results passed; {worker_guard_count} worker-result mutations rejected; "
+        f"{fallback_positive_count} raw-JSON fallback paths passed; {fallback_guard_count} fallback guards rejected."
     )
     return 0
 

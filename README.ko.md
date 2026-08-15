@@ -201,15 +201,15 @@ codex plugin add veriloop@veriloop
 | 계층 | 설명 |
 |---|---|
 | **공통 워크플로 코어** | Codex 스킬과 Claude Code 슬래시 명령이 동일한 명세·리뷰·수정·게이트 지침을 사용해 두 플랫폼에서 하나의 동작 계약을 따릅니다. |
-| **역할 격리 전달** | 개발자·수정자·리뷰어·게이트·controller는 각 책임에 필요한 입력만 받습니다. 간결한 전달과 응집도 높은 구현 배치로 부분 작업마다 리뷰 호출을 늘리지 않으면서 블라인드 독립성을 유지합니다. |
-| **스키마 기반 결과** | 리뷰·게이트·실행 기록은 `schemas/`의 JSON Schema를 따릅니다. CI는 판정을 읽기 전에 잘못되거나 모순된 결과를 거부하며, 독립성이 완화된 실행도 명시적으로 식별할 수 있습니다. |
+| **역할 격리 전달** | 개발자·수정자·리뷰어·게이트·controller는 각 책임에 필요한 입력만 받습니다. 개발자와 수정자의 완료 상태는 성공과 timeout·취소·컨텍스트 한도·도구 실패·잘못된 결과를 명시적으로 구분합니다. |
+| **스키마 기반 결과** | worker·리뷰·게이트·실행 기록은 `schemas/`의 JSON Schema를 따릅니다. JSON은 산문에서 추출하는 문자열이 아니라 타입이 정해진 결과 봉투로 사용합니다. native structured output을 우선 사용하고, fallback 전체 객체가 잘못되면 형식 수정만 한 번 요청한 뒤 루프를 중단합니다. |
 | **Controller 계약 회귀 검사** | 외부 의존성이 없는 로컬 검사가 실제 fixture assertion을 실행하고 strict/reduced 전환, 신규 리뷰어 식별자, 최종 revision 인수 조건, 고정 snapshot, archive 일관성, no-progress 중단, 게이트 실패 복구를 실제 모델 실행 전에 검증합니다. |
 
 ```bash
 python3 evals/run_contract_evals.py
 ```
 
-이 검사는 API 호출 없이 핵심 controller trace 3개, 명시적으로 승인된 reduced 전환 1개, 적대적 변형 20개를 확인합니다. 오케스트레이션 기록과 실행 증거를 검증하는 용도이며, 실제 모델 컨텍스트 격리와 주관적인 리뷰 품질은 신규 서브에이전트를 사용하는 live forward test로 확인해야 합니다.
+이 검사는 API 호출 없이 핵심 controller trace 3개, 명시적으로 승인된 reduced 전환 1개, worker 종료 전환 3개, 워크플로 적대적 변형 24개, 정상 worker 결과 7개, worker 결과 변형 12개, raw-JSON fallback 경로 5개를 확인합니다. 오케스트레이션 기록과 실행 증거를 검증하는 용도이며, 실제 모델 컨텍스트 격리와 주관적인 리뷰 품질은 신규 서브에이전트를 사용하는 live forward test로 확인해야 합니다.
 
 모든 리뷰 보고서 끝에는 `verdict`와 `findings[]`를 포함한 기계 판독용 JSON 블록이 붙습니다. 스키마 설명, 로컬 계약 검사, GitHub Actions 게이트, Claude Code Stop hook 연결 방법은 [docs/ci.md](docs/ci.md)를 참고하세요.
 

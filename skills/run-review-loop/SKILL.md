@@ -50,8 +50,8 @@ Keep each role to one responsibility and request only the capabilities it needs:
 | Role | Allowlisted input | Required output | Capability boundary |
 |---|---|---|---|
 | controller | full run state | run record and user report | orchestrate, run acceptance checks, write `.agent-review/`; never implement, review, or fix |
-| developer | spec, goal, current batch, scope, checks | changed files, checks, blockers | read/write target and run required checks; no review history or gate material |
-| fixer | Failed findings or minimal gate failure packet | changed files and per-finding verification | read/write target and run required checks; no passed probes |
+| developer | spec, goal, current batch, scope, checks | schema-valid worker result | read/write target and run required checks; no review history or gate material |
+| fixer | Failed findings or minimal gate failure packet | schema-valid worker result | read/write target and run required checks; no passed probes |
 | reviewer | strict-blind allowlist below | review result | read/search target and run safe checks; never write target or cause external side effects |
 | gate | reviewer allowlist plus snapshot | gate result | read/search frozen target and use isolated temporary tests; never write target or fix |
 
@@ -63,6 +63,48 @@ Keep worker responses compact. Return changed files, check command or assertion,
 result, short evidence, and blockers; omit reasoning traces and full tool transcripts.
 Store an essential long log as an artifact and return its path plus the relevant
 excerpt. The controller must never paste raw worker output into another role's brief.
+
+### Handle worker termination and results fail-closed
+
+Inspect the host delegation/tool status before reading the worker body. A reported
+timeout, cancellation, context limit, or tool failure is authoritative; never infer
+completion from a partial message or changed worktree. Record a compact synthetic
+worker result with the matching termination and blocker, then exit as `worker_blocked`
+or `worker_failed`.
+
+Require every developer and fixer response to conform to
+`../../schemas/worker-result.schema.json`. Use native structured output when the host
+supports it. Otherwise require the entire final response to be one raw JSON object
+without prose or fences, parse the whole response with a JSON parser, and validate the
+schema. Never extract JSON from mixed prose with a regular expression.
+
+For a normally returned but invalid object, allow one format-only retry in the same
+worker context. Give only the schema and validation error; do not rerun tools, edit
+code, or start another implementation attempt. If the retry is invalid, record a
+synthetic `blocked` result with `termination: invalid_result` and exit as
+`worker_result_invalid`.
+
+If the host cannot parse and validate the whole object reliably, do not use a
+best-effort textual fallback; record `invalid_result` and stop.
+
+Apply these semantic checks after schema validation:
+
+- `completed` requires `termination: completed`, `blocker: null`, no tool failures,
+  and every required check at `pass`. A command check records its real exit code and
+  cannot pass with a nonzero or missing exit code. Mark a non-command observable as
+  `kind: assertion` with `exit_code: null`; never use it to hide an unevaluated command.
+- A developer result must cover the named checks assigned to its current acceptance
+  batch, and the controller reruns those acceptance checks on the resulting revision.
+  A fixer result must contain one check whose `criterion` exactly matches each Failed
+  finding title it received. Do not substitute a convenient caller check for the
+  failing invariant.
+- `blocked` or `failed` requires a non-null blocker and must never advance to review,
+  snapshot, or gate. Preserve any already changed files for the user to inspect.
+- A missing response is not an empty successful result. Map the host termination to a
+  synthetic blocked/failed result instead.
+
+The controller, not the worker, decides the run exit. Archive the validated or
+synthetic object and keep full tool transcripts out of later role briefs.
 
 ## 4. Enforce strict blind mode
 
@@ -120,6 +162,11 @@ Use the host's internal subagent or delegation mechanism when available. Do not
 create a user-owned task or external thread merely to simulate an internal worker.
 Give the worker the specification and acceptance checks, but do not give it review
 reports, the review checklist, gate plans, holdout probes, or reviewer reasoning.
+
+Inspect the transport status and validate the worker result before reading completion
+claims. Advance to cumulative acceptance and blind review only for a semantically valid
+`completed` result. A blocked, failed, missing, or twice-invalid result exits through
+the worker termination protocol above.
 
 ### Review in a unique blind context
 
@@ -224,24 +271,34 @@ context.
 For a blind-gate failure, pass only the minimal failure packet defined above, not the
 full gate report. Never let the fixer read passed holdout probes.
 
+Validate the fixer result with the same worker protocol. Review the repaired target in
+a fresh context only after a semantically valid `completed` result and passing
+per-finding checks.
+
 ## 8. Archive and report
 
 On every exit, create the next numbered .agent-review/runs/NNN/ directory. Store each
+developer and fixer result as a JSON file conforming to
+`../../schemas/worker-result.schema.json`, each
 iteration's prose review plus JSON block, each full gate result as a JSON file that
 conforms to `../../schemas/gate-result.schema.json`, and a run.json containing the
 goal, spec path, per-iteration verdict/counts and review paths, acceptance results,
-blind mode, any authorized relaxation, gate-result paths and final summary, and exit
-reason. Write archives only after the run exits so no active reviewer can consume
+worker-result paths, blind mode, any authorized relaxation, gate-result paths and final
+summary, and exit reason. Write archives only after the run exits so no active reviewer can consume
 them. Do not copy the specification into the archive.
 
 Write `run.json` to conform to `../../schemas/run-result.schema.json`, using the exact
 exit identifiers `goal_met`, `iteration_cap`, `no_progress`, and
-`blind_context_unavailable`. Validate it before reporting success; an invalid archive
-cannot change the actual gate verdict but must be reported as an archival failure.
+`blind_context_unavailable`, plus `worker_blocked`, `worker_failed`, and
+`worker_result_invalid` for worker termination exits. Validate it before reporting
+success; an invalid archive cannot change the actual gate verdict but must be reported
+as an archival failure.
 
 Report:
 
-- exit reason: goal met, iteration cap, no progress, or blind context unavailable;
+- exit reason: goal met, iteration cap, no progress, blind context unavailable, worker
+  blocked/failed, or invalid worker result;
+- worker termination: role, status, termination, failed/blocked check, and blocker;
 - every acceptance criterion, exact check, Pass/Fail, and captured evidence;
 - each iteration's verdict and failed/warning counts;
 - every resolved finding as Pass;

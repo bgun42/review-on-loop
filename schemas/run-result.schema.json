@@ -12,6 +12,7 @@
     "relaxation",
     "iterations",
     "acceptance",
+    "worker_files",
     "gate_files",
     "gate"
   ],
@@ -24,7 +25,10 @@
         "goal_met",
         "iteration_cap",
         "no_progress",
-        "blind_context_unavailable"
+        "blind_context_unavailable",
+        "worker_blocked",
+        "worker_failed",
+        "worker_result_invalid"
       ]
     },
     "blind_mode": { "type": "string", "enum": ["strict"] },
@@ -84,6 +88,10 @@
           "evidence": { "type": "string", "minLength": 1 }
         }
       }
+    },
+    "worker_files": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
     },
     "gate_files": {
       "type": "array",

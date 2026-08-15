@@ -54,6 +54,18 @@
       "prompt": "$run-review-loop finish the existing implementation per docs/spec.md; all named acceptance checks currently pass",
       "expected_output": "A unique blind reviewer receives only the allowlisted brief and does not read .agent-review. On a passing candidate, a different fresh gate freezes the snapshot and generates at least two late-bound probes from distinct categories, including one in-spec behavior not identical to a named acceptance check. Success requires unchanged snapshot, passing probes, no new Failed finding, and the machine-readable gate block.",
       "files": ["fixture repo: confirmed spec; clean diff; fresh subagents available"]
+    },
+    {
+      "id": 10,
+      "prompt": "$run-review-loop implement docs/spec.md; the developer delegation timed out after making partial changes",
+      "expected_output": "The controller treats the host timeout as authoritative before reading any partial worker prose. It records a synthetic schema-valid blocked developer result with termination timeout, preserves the changed files, archives the run, exits worker_blocked, and does not start acceptance, review, snapshot, or gate.",
+      "files": ["fixture repo: confirmed spec; partial diff; developer transport timeout"]
+    },
+    {
+      "id": 11,
+      "prompt": "$run-review-loop implement docs/spec.md; the developer returned prose plus malformed JSON twice while claiming tests passed",
+      "expected_output": "The controller never extracts JSON from the prose or infers completion. It permits one format-only retry without rerunning tools or edits; after the second invalid whole-object response it records invalid_result, exits worker_result_invalid, archives the partial state, and never starts blind review or gate.",
+      "files": ["fixture repo: confirmed spec; schema-invalid worker responses"]
     }
   ]
 }

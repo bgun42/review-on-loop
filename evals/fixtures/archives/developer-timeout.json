@@ -1,0 +1,13 @@
+{
+  "role": "developer",
+  "status": "blocked",
+  "termination": "timeout",
+  "changed_files": [],
+  "checks": [],
+  "tool_failures": [],
+  "blocker": {
+    "code": "timeout",
+    "message": "delegation timed out",
+    "needs_user_input": false
+  }
+}

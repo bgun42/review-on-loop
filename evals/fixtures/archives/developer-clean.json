@@ -1,0 +1,18 @@
+{
+  "role": "developer",
+  "status": "completed",
+  "termination": "completed",
+  "changed_files": ["evals/fixtures/sample_project.py"],
+  "checks": [
+    {
+      "kind": "command",
+      "criterion": "The formatter preserves ISO dates",
+      "check": "python3 -c \"from evals.fixtures.sample_project import normalize_iso_date; assert normalize_iso_date('2026-08-15') == '2026-08-15'\"",
+      "exit_code": 0,
+      "result": "pass",
+      "evidence": "exit 0: ISO date preserved"
+    }
+  ],
+  "tool_failures": [],
+  "blocker": null
+}

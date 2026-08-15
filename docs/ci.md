@@ -1,7 +1,8 @@
 # CI and hook integration
 
-Veriloop publishes three JSON Schema contracts:
+Veriloop publishes four JSON Schema contracts:
 
+- `schemas/worker-result.schema.json` — developer and fixer completion output;
 - `schemas/review-result.schema.json` — standalone review and PR gate output;
 - `schemas/gate-result.schema.json` — late-bound final gate output;
 - `schemas/run-result.schema.json` — archived `run.json` output.
@@ -9,6 +10,25 @@ Veriloop publishes three JSON Schema contracts:
 Use native structured output when the host supports it. Otherwise require raw JSON and
 validate it before reading the verdict. Never extract JSON from prose with a regular
 expression.
+
+## Worker completion protocol
+
+Developer and fixer results use `worker-result.schema.json` so the controller can
+distinguish a completed task from a partial response, failed tool call, timeout,
+cancellation, context limit, or invalid result. The host's delegation/tool termination
+status is authoritative and is checked before the response body.
+
+Native structured output is preferred. When it is unavailable, the worker returns one
+raw JSON object as its entire final response. The controller parses the whole response
+with a JSON parser and validates the schema; it never extracts an object from prose with
+a regular expression. One format-only retry may repair serialization without rerunning
+tools or editing code. A second invalid result exits fail-closed as
+`worker_result_invalid`.
+
+`status: completed` advances only when `termination` is `completed`, every required
+check passes with a valid exit code, `tool_failures` is empty, and `blocker` is null.
+Blocked or failed results are archived but never advance to review or gate. This makes
+JSON parse/schema errors an explicit stop condition rather than a false success.
 
 ## Zero-cost controller contract regression
 
@@ -23,10 +43,16 @@ It checks three controller traces: a clean diff held by late-bound probes, a see
 failure repaired before a fresh review identity, and a strict-blind capability failure
 that exits before code changes. It also verifies an explicitly authorized reduced-mode
 transition. Every fixture assertion runs against a checked-in target and specification,
-and the frozen snapshot is the target's SHA-256 digest. Twenty deliberate negative
+and the frozen snapshot is the target's SHA-256 digest. Twenty-four deliberate negative
 mutations cover result fabrication, stale acceptance checks, agent/context reuse,
 leaked fixer context, target invalidation, no-progress bypass, unauthorized relaxation,
-gate-failure bypass, and holdout duplication.
+gate-failure bypass, holdout duplication, worker-role mismatch, host/body termination
+contradictions, and substitution of unrelated fixer checks.
+
+The same run exercises three worker termination exits, accepts seven valid
+completed/blocked/failed worker envelopes, rejects twelve contradictory or
+schema-invalid worker-result mutations, and checks five whole-response JSON fallback
+paths including the single format-only retry and fail-closed second failure.
 
 This suite validates controller state, recorded identities, allowlisted fields, schemas,
 and executable fixture evidence. Because it does not call a model or control a host's

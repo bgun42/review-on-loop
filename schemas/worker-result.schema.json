@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "worker-result.schema.json",
+  "title": "Veriloop developer or fixer result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "role",
+    "status",
+    "termination",
+    "changed_files",
+    "checks",
+    "tool_failures",
+    "blocker"
+  ],
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": ["developer", "fixer"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "blocked", "failed"]
+    },
+    "termination": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "tool_error",
+        "timeout",
+        "cancelled",
+        "context_limit",
+        "invalid_result"
+      ]
+    },
+    "changed_files": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "tool_failures": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool_failure" }
+    },
+    "blocker": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["code", "message", "needs_user_input"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "dependency_unavailable",
+            "permission_denied",
+            "tool_error",
+            "timeout",
+            "cancelled",
+            "context_limit",
+            "invalid_result",
+            "acceptance_failed",
+            "other"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1 },
+        "needs_user_input": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "criterion", "check", "exit_code", "result", "evidence"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["command", "assertion"]
+        },
+        "criterion": { "type": "string", "minLength": 1 },
+        "check": { "type": "string", "minLength": 1 },
+        "exit_code": { "type": ["integer", "null"] },
+        "result": {
+          "type": "string",
+          "enum": ["pass", "fail", "blocked"]
+        },
+        "evidence": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tool_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "operation", "error"],
+      "properties": {
+        "tool": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "minLength": 1 },
+        "error": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "role": "fixer",
+  "status": "completed",
+  "termination": "completed",
+  "changed_files": ["evals/fixtures/sample_project.py"],
+  "checks": [
+    {
+      "kind": "command",
+      "criterion": "Empty fleet triggers one query per ship",
+      "check": "python3 -c \"from evals.fixtures.sample_project import batched_query_count; assert batched_query_count(range(100)) == 1\"",
+      "exit_code": 0,
+      "result": "pass",
+      "evidence": "exit 0: query count stayed at one"
+    }
+  ],
+  "tool_failures": [],
+  "blocker": null
+}
