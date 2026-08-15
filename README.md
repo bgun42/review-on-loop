@@ -197,7 +197,22 @@ No configuration is required. The plugin discovers the repository's conventions 
 | `.agent-review/ledger.json` | Finding state across iterations: open, Pass, recurred, accepted |
 | `.agent-review/runs/` | Archived runs used by the dashboard |
 
-Every review report ends with a machine-readable JSON block containing `verdict` and `findings[]`. See [docs/ci.md](docs/ci.md) for a GitHub Actions gate and a Claude Code Stop-hook recipe built on that contract.
+### Automation reliability
+
+| Layer | Description |
+|---|---|
+| **Shared workflow core** | Codex skills and Claude Code slash commands route to the same specification, review, repair, and gate instructions so both platforms follow one behavior contract. |
+| **Role-isolated handoffs** | Developer, fixer, reviewer, gate, and controller receive only the inputs needed for their responsibility. Compact handoffs and cohesive development batches preserve blind-review independence without multiplying review calls on partial work. |
+| **Schema-constrained results** | Review, gate, and archived run outputs conform to the JSON Schemas under `schemas/`. CI can reject malformed or contradictory results before reading a verdict, and reduced-independence runs remain explicitly identifiable. |
+| **Controller contract regression** | A dependency-free local suite executes fixture assertions and verifies strict/reduced transitions, fresh reviewer identities, final-revision acceptance, frozen snapshots, archive consistency, no-progress stops, and gate-failure recovery before a live model run. |
+
+```bash
+python3 evals/run_contract_evals.py
+```
+
+The suite covers three primary controller traces, one explicitly authorized reduced-mode transition, and twenty adversarial mutations without API calls. It validates orchestration records and executable evidence; actual model-context isolation and subjective review quality still require a live forward test with fresh subagents.
+
+Every review report ends with a machine-readable JSON block containing `verdict` and `findings[]`. See [docs/ci.md](docs/ci.md) for schema details, the local contract suite, a GitHub Actions gate, and a Claude Code Stop-hook recipe.
 
 > **Claude Code only:** To enforce a review on sessions that do not invoke the loop, add a Stop hook in your own Claude Code settings. Hooks are user-owned harness configuration, so the plugin documents this setup instead of installing it.
 
@@ -211,9 +226,9 @@ Every review report ends with a machine-readable JSON block containing `verdict`
 .codex-plugin/plugin.json         # Codex plugin manifest
 .claude-plugin/plugin.json        # Claude Code plugin manifest
 commands/
-├── init.md                       # Claude Code initialization command
-├── draft.md                      # Claude Code specification command
-└── work.md                       # Claude Code loop command
+├── init.md                       # Thin Claude entry point for initialization
+├── draft.md                      # Thin Claude entry point for specification
+└── work.md                       # Thin Claude entry point for the shared loop
 skills/
 ├── initialize-review-loop/       # Role-model routing and ledger setup
 ├── draft-spec/                   # Repository analysis → draft → confirmation
@@ -221,6 +236,8 @@ skills/
 ├── veriloop/                     # Independent five-pass blind review
 ├── apply-review-findings/        # Repair verified findings
 └── loop-dashboard/               # Render run history as offline HTML
+schemas/                           # Review, gate, and archived-run contracts
+evals/                             # Executable controller traces and guard mutations
 ```
 
 </details>

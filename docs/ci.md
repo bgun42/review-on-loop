@@ -10,6 +10,30 @@ Use native structured output when the host supports it. Otherwise require raw JS
 validate it before reading the verdict. Never extract JSON from prose with a regular
 expression.
 
+## Zero-cost controller contract regression
+
+Run the dependency-free contract suite before publishing the plugin or changing the
+review-loop instructions and schemas:
+
+```bash
+python3 evals/run_contract_evals.py
+```
+
+It checks three controller traces: a clean diff held by late-bound probes, a seeded
+failure repaired before a fresh review identity, and a strict-blind capability failure
+that exits before code changes. It also verifies an explicitly authorized reduced-mode
+transition. Every fixture assertion runs against a checked-in target and specification,
+and the frozen snapshot is the target's SHA-256 digest. Twenty deliberate negative
+mutations cover result fabrication, stale acceptance checks, agent/context reuse,
+leaked fixer context, target invalidation, no-progress bypass, unauthorized relaxation,
+gate-failure bypass, and holdout duplication.
+
+This suite validates controller state, recorded identities, allowlisted fields, schemas,
+and executable fixture evidence. Because it does not call a model or control a host's
+context delivery, it cannot prove that two recorded identities were truly separate
+subagents or judge review quality. Run a live forward test with fresh subagents when
+changing blind-context orchestration, reviewer prompts, or gate behavior.
+
 ## GitHub Actions — Codex
 
 Set the repository variable `VERILOOP_SPEC_PATH` to the confirmed specification that

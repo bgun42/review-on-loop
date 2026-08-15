@@ -1,0 +1,20 @@
+{
+  "gate": "hold",
+  "snapshot": "sha256:61e8517edc3cf4c23efc06ee7a3a2fad6be52156833fb4c0a987523a603c95d0",
+  "independence": "strict",
+  "probes": [
+    {
+      "category": "boundary",
+      "check": "python3 -c \"from evals.fixtures.sample_project import batched_query_count; assert batched_query_count([]) == 0\"",
+      "result": "pass",
+      "evidence": "exit 0: empty fleet issued no query"
+    },
+    {
+      "category": "differential",
+      "check": "python3 -c \"from evals.fixtures.sample_project import fleet_total; fleets=[range(i) for i in range(25)]; assert all(fleet_total(fleet) == sum(list(fleet)) for fleet in fleets)\"",
+      "result": "pass",
+      "evidence": "exit 0: all generated fleet totals matched"
+    }
+  ],
+  "findings": []
+}

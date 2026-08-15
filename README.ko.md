@@ -196,7 +196,22 @@ codex plugin add veriloop@veriloop
 | `.agent-review/ledger.json` | 반복을 가로지르는 finding 상태: open, Pass, recurred, accepted |
 | `.agent-review/runs/` | 완료된 실행 기록과 대시보드 입력 |
 
-모든 리뷰 보고서 끝에는 `verdict`와 `findings[]`를 포함한 기계 판독용 JSON 블록이 붙습니다. GitHub Actions 게이트와 Claude Code Stop hook 연결 방법은 [docs/ci.md](docs/ci.md)를 참고하세요.
+### 자동화 신뢰성
+
+| 계층 | 설명 |
+|---|---|
+| **공통 워크플로 코어** | Codex 스킬과 Claude Code 슬래시 명령이 동일한 명세·리뷰·수정·게이트 지침을 사용해 두 플랫폼에서 하나의 동작 계약을 따릅니다. |
+| **역할 격리 전달** | 개발자·수정자·리뷰어·게이트·controller는 각 책임에 필요한 입력만 받습니다. 간결한 전달과 응집도 높은 구현 배치로 부분 작업마다 리뷰 호출을 늘리지 않으면서 블라인드 독립성을 유지합니다. |
+| **스키마 기반 결과** | 리뷰·게이트·실행 기록은 `schemas/`의 JSON Schema를 따릅니다. CI는 판정을 읽기 전에 잘못되거나 모순된 결과를 거부하며, 독립성이 완화된 실행도 명시적으로 식별할 수 있습니다. |
+| **Controller 계약 회귀 검사** | 외부 의존성이 없는 로컬 검사가 실제 fixture assertion을 실행하고 strict/reduced 전환, 신규 리뷰어 식별자, 최종 revision 인수 조건, 고정 snapshot, archive 일관성, no-progress 중단, 게이트 실패 복구를 실제 모델 실행 전에 검증합니다. |
+
+```bash
+python3 evals/run_contract_evals.py
+```
+
+이 검사는 API 호출 없이 핵심 controller trace 3개, 명시적으로 승인된 reduced 전환 1개, 적대적 변형 20개를 확인합니다. 오케스트레이션 기록과 실행 증거를 검증하는 용도이며, 실제 모델 컨텍스트 격리와 주관적인 리뷰 품질은 신규 서브에이전트를 사용하는 live forward test로 확인해야 합니다.
+
+모든 리뷰 보고서 끝에는 `verdict`와 `findings[]`를 포함한 기계 판독용 JSON 블록이 붙습니다. 스키마 설명, 로컬 계약 검사, GitHub Actions 게이트, Claude Code Stop hook 연결 방법은 [docs/ci.md](docs/ci.md)를 참고하세요.
 
 > **Claude Code 전용:** 루프를 직접 실행하지 않은 세션까지 매번 강제로 리뷰하려면 사용자 설정에 Stop hook을 연결해야 합니다. 이는 사용자별 실행 환경 설정이므로 플러그인이 자동 설치하지 않습니다.
 
@@ -210,9 +225,9 @@ codex plugin add veriloop@veriloop
 .codex-plugin/plugin.json         # Codex plugin manifest
 .claude-plugin/plugin.json        # Claude Code plugin manifest
 commands/
-├── init.md                       # Claude Code 초기화 명령
-├── draft.md                      # Claude Code 명세 작성 명령
-└── work.md                       # Claude Code 루프 실행 명령
+├── init.md                       # 초기화를 위한 얇은 Claude 진입점
+├── draft.md                      # 명세 작성을 위한 얇은 Claude 진입점
+└── work.md                       # 공통 루프를 호출하는 얇은 Claude 진입점
 skills/
 ├── initialize-review-loop/       # 역할별 모델과 ledger 초기화
 ├── draft-spec/                   # 저장소 분석 → 명세 초안 → 사용자 확인
@@ -220,6 +235,8 @@ skills/
 ├── veriloop/                     # 다섯 관점의 독립 블라인드 리뷰
 ├── apply-review-findings/        # 검증된 지적사항 수정
 └── loop-dashboard/               # 실행 기록 HTML 시각화
+schemas/                           # 리뷰·게이트·실행 기록 계약
+evals/                             # 실행 가능한 controller trace와 적대적 변형
 ```
 
 </details>

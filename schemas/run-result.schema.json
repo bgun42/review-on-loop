@@ -47,6 +47,7 @@
         "required": [
           "iteration",
           "verdict",
+          "independence",
           "failed_count",
           "warning_count",
           "review_file"
@@ -56,6 +57,10 @@
           "verdict": {
             "type": "string",
             "enum": ["pass", "pass_with_warnings", "fail"]
+          },
+          "independence": {
+            "type": "string",
+            "enum": ["strict", "reduced"]
           },
           "failed_count": { "type": "integer", "minimum": 0 },
           "warning_count": { "type": "integer", "minimum": 0 },

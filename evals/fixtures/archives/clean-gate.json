@@ -1,0 +1,20 @@
+{
+  "gate": "hold",
+  "snapshot": "sha256:61e8517edc3cf4c23efc06ee7a3a2fad6be52156833fb4c0a987523a603c95d0",
+  "independence": "strict",
+  "probes": [
+    {
+      "category": "boundary",
+      "check": "python3 -c \"from evals.fixtures.sample_project import normalize_iso_date; assert normalize_iso_date('0001-01-01') == '0001-01-01'\"",
+      "result": "pass",
+      "evidence": "exit 0: minimum date remained stable"
+    },
+    {
+      "category": "property",
+      "check": "python3 -c \"from evals.fixtures.sample_project import normalize_iso_date; value='2026-08-15'; assert normalize_iso_date(normalize_iso_date(value)) == normalize_iso_date(value)\"",
+      "result": "pass",
+      "evidence": "exit 0: repeated formatting was stable"
+    }
+  ],
+  "findings": []
+}
