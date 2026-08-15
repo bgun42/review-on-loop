@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Strict-blind, specification-grounded review and repair loops for AI-written code.",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "plugins": [
     {
       "name": "veriloop",
       "source": "./",
       "description": "Reviews agent-produced diffs with unique blind reviewers across regression, performance, cloud cost, readability, and repository conventions, then uses late-bound holdout probes before declaring success.",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "author": {
         "name": "bgun42"
       },
