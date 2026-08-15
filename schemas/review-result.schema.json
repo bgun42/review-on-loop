@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-result.schema.json",
+  "title": "Veriloop review result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "findings"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "pass_with_warnings", "fail"]
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "title",
+        "file",
+        "line",
+        "confidence",
+        "fix_hint"
+      ],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["failed", "warning"]
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 0 },
+        "confidence": {
+          "type": "string",
+          "enum": ["confirmed", "needs_verification"]
+        },
+        "fix_hint": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

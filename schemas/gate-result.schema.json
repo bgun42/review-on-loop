@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gate-result.schema.json",
+  "title": "Veriloop final gate result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gate", "snapshot", "independence", "probes", "findings"],
+  "properties": {
+    "gate": {
+      "type": "string",
+      "enum": ["hold", "fail", "blocked"]
+    },
+    "snapshot": { "type": "string", "minLength": 1 },
+    "independence": {
+      "type": "string",
+      "enum": ["strict", "reduced"]
+    },
+    "probes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/probe" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "check", "result", "evidence"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "boundary",
+            "state",
+            "failure",
+            "property",
+            "differential",
+            "mutation",
+            "assertion"
+          ]
+        },
+        "check": { "type": "string", "minLength": 1 },
+        "result": {
+          "type": "string",
+          "enum": ["pass", "fail", "blocked"]
+        },
+        "evidence": { "type": "string", "minLength": 1 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "title", "file", "line", "evidence"],
+      "properties": {
+        "severity": { "const": "failed" },
+        "title": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 0 },
+        "evidence": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

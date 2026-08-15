@@ -43,7 +43,28 @@ substituting another model. The user's configuration is authoritative.
 Treat a missing `blind_mode` as `strict`. Strict is the only persistent mode; never
 save relaxed mode as a repository default.
 
-## 3. Enforce strict blind mode
+## 3. Define role contracts and least privilege
+
+Keep each role to one responsibility and request only the capabilities it needs:
+
+| Role | Allowlisted input | Required output | Capability boundary |
+|---|---|---|---|
+| controller | full run state | run record and user report | orchestrate, run acceptance checks, write `.agent-review/`; never implement, review, or fix |
+| developer | spec, goal, current batch, scope, checks | changed files, checks, blockers | read/write target and run required checks; no review history or gate material |
+| fixer | Failed findings or minimal gate failure packet | changed files and per-finding verification | read/write target and run required checks; no passed probes |
+| reviewer | strict-blind allowlist below | review result | read/search target and run safe checks; never write target or cause external side effects |
+| gate | reviewer allowlist plus snapshot | gate result | read/search frozen target and use isolated temporary tests; never write target or fix |
+
+Use host-enforced read/write or tool allowlists when available. Otherwise state the
+same boundary in the role brief; strict blind mode still describes context isolation,
+not a filesystem security claim.
+
+Keep worker responses compact. Return changed files, check command or assertion,
+result, short evidence, and blockers; omit reasoning traces and full tool transcripts.
+Store an essential long log as an artifact and return its path plus the relevant
+excerpt. The controller must never paste raw worker output into another role's brief.
+
+## 4. Enforce strict blind mode
 
 Before development, verify that the host can:
 
@@ -60,7 +81,7 @@ record, and record the reason and authorization in `run.json`. If not
 approved, exit with `blind_context_unavailable`. Never describe relaxed review as
 independent or blind.
 
-## 4. Maintain the findings ledger
+## 5. Maintain the findings ledger
 
 Create .agent-review/ledger.json with {"findings": []} when absent.
 
@@ -72,7 +93,21 @@ The controller owns the ledger. Never send it to a reviewer or gate. Reconcile
 accepted warnings after receiving a blind report instead of preloading them into the
 reviewer's context.
 
-## 5. Iterate at most three times
+## 6. Plan low-cost implementation batches
+
+Use one development batch for a small cohesive change. When the specification divides
+into independently checkable acceptance groups or components, order the smallest
+coherent batches before development. Give a fresh worker only the current batch, the
+necessary spec slice, global scope bounds, and that batch's checks. Complete its checks
+before starting the next batch.
+
+Do not run a blind review after every development batch; that multiplies reviewer cost
+and exposes partial integration states. After all batches pass their local checks,
+freeze and review the cumulative target. Keep cross-component and full-suite checks in
+the final acceptance set. If no safe independent boundary exists, keep one batch rather
+than inventing a split.
+
+## 7. Iterate at most three times
 
 ### Develop
 
@@ -105,7 +140,9 @@ start a clean reviewer; if that cannot be done, return to the strict-mode prefli
 
 Require the prose report and final machine-readable JSON block. The controller then
 reconciles findings and filters previously accepted warnings without exposing history
-to the reviewer.
+to the reviewer. Require the object to validate against
+`../../schemas/review-result.schema.json`; when the host supports native structured
+output, supply that schema to the reviewer.
 
 ### Check stop conditions in order
 
@@ -165,6 +202,11 @@ Require a final machine-readable gate block:
 }
 ```
 
+Require this object to validate against `../../schemas/gate-result.schema.json`; use
+native structured output when the host supports it. A schema-invalid gate is blocked,
+not held. Each gate finding contains `severity: failed`, title, relative file, line
+(`0` when no single line applies), and captured evidence.
+
 On failure, add the finding to the controller-owned ledger and give the fixer only the
 failed invariant and minimal reproducible evidence; withhold passed probes and the
 rest of the gate's reasoning. After fixing and blind review, create another entirely
@@ -182,14 +224,20 @@ context.
 For a blind-gate failure, pass only the minimal failure packet defined above, not the
 full gate report. Never let the fixer read passed holdout probes.
 
-## 6. Archive and report
+## 8. Archive and report
 
 On every exit, create the next numbered .agent-review/runs/NNN/ directory. Store each
-iteration's prose review plus JSON block and a run.json containing the goal, spec
-path, per-iteration verdict/counts, acceptance results, blind mode, any authorized
-relaxation, gate snapshot, holdout probe evidence, and exit reason. Write archives
-only after the run exits so no active reviewer can consume them. Do not copy the
-specification into the archive.
+iteration's prose review plus JSON block, each full gate result as a JSON file that
+conforms to `../../schemas/gate-result.schema.json`, and a run.json containing the
+goal, spec path, per-iteration verdict/counts and review paths, acceptance results,
+blind mode, any authorized relaxation, gate-result paths and final summary, and exit
+reason. Write archives only after the run exits so no active reviewer can consume
+them. Do not copy the specification into the archive.
+
+Write `run.json` to conform to `../../schemas/run-result.schema.json`, using the exact
+exit identifiers `goal_met`, `iteration_cap`, `no_progress`, and
+`blind_context_unavailable`. Validate it before reporting success; an invalid archive
+cannot change the actual gate verdict but must be reported as an archival failure.
 
 Report:
 

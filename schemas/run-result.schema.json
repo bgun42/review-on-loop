@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-result.schema.json",
+  "title": "Veriloop run result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "goal",
+    "spec_path",
+    "exit_reason",
+    "blind_mode",
+    "relaxation",
+    "iterations",
+    "acceptance",
+    "gate_files",
+    "gate"
+  ],
+  "properties": {
+    "goal": { "type": "string", "minLength": 1 },
+    "spec_path": { "type": "string", "minLength": 1 },
+    "exit_reason": {
+      "type": "string",
+      "enum": [
+        "goal_met",
+        "iteration_cap",
+        "no_progress",
+        "blind_context_unavailable"
+      ]
+    },
+    "blind_mode": { "type": "string", "enum": ["strict"] },
+    "relaxation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorized", "reason", "authorization"],
+      "properties": {
+        "authorized": { "type": "boolean" },
+        "reason": { "type": ["string", "null"] },
+        "authorization": { "type": ["string", "null"] }
+      }
+    },
+    "iterations": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "iteration",
+          "verdict",
+          "failed_count",
+          "warning_count",
+          "review_file"
+        ],
+        "properties": {
+          "iteration": { "type": "integer", "minimum": 1, "maximum": 3 },
+          "verdict": {
+            "type": "string",
+            "enum": ["pass", "pass_with_warnings", "fail"]
+          },
+          "failed_count": { "type": "integer", "minimum": 0 },
+          "warning_count": { "type": "integer", "minimum": 0 },
+          "review_file": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "check", "result", "evidence"],
+        "properties": {
+          "criterion": { "type": "string", "minLength": 1 },
+          "check": { "type": "string", "minLength": 1 },
+          "result": {
+            "type": "string",
+            "enum": ["pass", "fail", "blocked"]
+          },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "gate_files": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "snapshot", "independence"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["not_run", "hold", "fail", "blocked"]
+        },
+        "snapshot": { "type": ["string", "null"] },
+        "independence": {
+          "type": ["string", "null"],
+          "enum": ["strict", "reduced", null]
+        }
+      }
+    }
+  }
+}

@@ -204,12 +204,18 @@ Rules for the report:
 - Suggest fixes but do not apply them unless the user asks. The deliverable of this
   skill is the review.
 
-### Machine-readable result block
+### Machine-readable result
 
-End every report with this fenced JSON block. It is the contract that lets automation —
+Make the machine-readable object conform to
+`../../schemas/review-result.schema.json`. It is the contract that lets automation —
 the `run-review-loop` and `apply-review-findings` skills, CI scripts — consume the
-review without parsing prose. Keep the prose report as the source of truth for humans;
-this block only mirrors it.
+review without parsing prose.
+
+For an interactive review, keep the prose report as the source of truth and end it
+with the fenced JSON object below. When the host supplies the schema as a native
+structured-output constraint, or CI explicitly requests raw JSON, return only the
+schema-conforming object with no fence or surrounding prose. Never make automation
+extract JSON from prose.
 
 ```json
 {
@@ -227,6 +233,8 @@ this block only mirrors it.
 }
 ```
 
-Rules: `verdict` and `findings` must match the prose exactly (same count, same
-severities, same titles — a mismatch breaks the loop that consumes it). A passing
-review has `"findings": []` or warning-only entries.
+Rules: `verdict` and `findings` must match the prose exactly when prose is present
+(same count, same severities, same titles). A passing review has `"findings": []`;
+`pass_with_warnings` contains warnings only; `fail` contains at least one Failed
+finding. If native schema validation rejects the result, correct the result instead of
+loosening the schema or inferring a verdict.
